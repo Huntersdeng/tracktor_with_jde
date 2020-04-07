@@ -1,0 +1,1 @@
+find . -depth -name "*.png" -exec sh -c 'f="{}"; mv -- "$f" "${f%_leftImg.png}.png"' \;
