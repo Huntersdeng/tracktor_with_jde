@@ -14,8 +14,8 @@ import numpy as np
 
 warnings.filterwarnings('ignore')
 
-root = '/home/hunter/Document/torch'
-# root = '/data/dgw'
+# root = '/home/hunter/Document/torch'
+root = '/data/dgw'
 
 # paths = {'CT':'./data/CalTech.txt', 'CUHK':'./data/CUHK.txt', 
 #          'ETH':'./data/ETH.txt', 'M16':'/data/MOT16_train.txt', 
