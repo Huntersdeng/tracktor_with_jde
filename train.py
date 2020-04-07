@@ -25,7 +25,7 @@ transforms = T.Compose([T.ToTensor()])
 trainset = JointDataset(root=root, paths=paths, img_size=(640,480), augment=True, transforms=transforms)
 # trainset = LoadImagesAndLabels(root, paths['ETH'], img_size=(576,320), augment=True, transforms=transforms)
 
-batch_size = 4
+batch_size = 64
 dataloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True,
                                              num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate_fn)
 
