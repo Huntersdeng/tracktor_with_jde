@@ -17,13 +17,12 @@ warnings.filterwarnings('ignore')
 root = '/home/hunter/Document/torch'
 # root = '/data/dgw'
 
-paths = {'CT':'./data/CalTech.txt', 'CUHK':'./data/CUHK.txt', 
-         'ETH':'./data/ETH.txt', 'M16':'/data/MOT16_train.txt', 
-         'PRW':'./data/PRW.txt', 'CP':'./data/cp_train.txt'}
-transforms = T.Compose([T.ToTensor(),
-                        T.Normalize(mean = [0.485, 0.456, 0.406], 
-                                     std = [0.229, 0.224, 0.225])])
-trainset = JointDataset(root=root, paths={'ETH':'/home/hunter/Document/torch/myproject/data/ETH.txt'}, img_size=(576,320), augment=True, transforms=transforms)
+# paths = {'CT':'./data/CalTech.txt', 'CUHK':'./data/CUHK.txt', 
+#          'ETH':'./data/ETH.txt', 'M16':'/data/MOT16_train.txt', 
+#          'PRW':'./data/PRW.txt', 'CP':'./data/cp_train.txt'}
+paths = {'M16':'./data/MOT16_train.txt'}
+transforms = T.Compose([T.ToTensor()])
+trainset = JointDataset(root=root, paths=paths, img_size=(640,480), augment=True, transforms=transforms)
 # trainset = LoadImagesAndLabels(root, paths['ETH'], img_size=(576,320), augment=True, transforms=transforms)
 
 batch_size = 4
@@ -40,7 +39,8 @@ for i, (imgs, labels, _, _, targets_len) in enumerate(dataloader):
     for target_len, label in zip(np.squeeze(targets_len), labels):
         target = {}
         target['boxes'] = label[0:int(target_len), 2:6]
-        target['labels'] = (label[0:int(target_len), 1]).long()
+        target['ids'] = (label[0:int(target_len), 1]).long()
+        target['labels'] = torch.ones_like(target['ids'])
         targets.append(target)
     losses = model(imgs, targets)
     print(losses)

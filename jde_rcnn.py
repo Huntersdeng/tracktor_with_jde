@@ -19,14 +19,14 @@ from utils.utils import dense_to_one_hot
 class Jde_RCNN(GeneralizedRCNN):
     def __init__(self, backbone, num_ID, num_classes=2, len_embeddings=128,
                  # transform parameters
-                 min_size=800, max_size=1333,
+                 min_size=400, max_size=800,
                  image_mean=None, image_std=None,
                  # RPN parameters
                  rpn_anchor_generator=None, rpn_head=None,
                  rpn_pre_nms_top_n_train=2000, rpn_pre_nms_top_n_test=1000,
                  rpn_post_nms_top_n_train=2000, rpn_post_nms_top_n_test=1000,
                  rpn_nms_thresh=0.7,
-                 rpn_fg_iou_thresh=0.7, rpn_bg_iou_thresh=0.3,
+                 rpn_fg_iou_thresh=0.5, rpn_bg_iou_thresh=0.4,
                  rpn_batch_size_per_image=256, rpn_positive_fraction=0.5,
                  # Box parameters
                  box_roi_pool=None, box_head=None, box_predictor=None,
@@ -47,8 +47,8 @@ class Jde_RCNN(GeneralizedRCNN):
         out_channels = backbone.out_channels
 
         if rpn_anchor_generator is None:
-            anchor_sizes = ((32,), (64,), (128,), (256,), (512,))
-            aspect_ratios = ((0.5, 1.0, 2.0),) * len(anchor_sizes)
+            anchor_sizes = ((16,22), (32,45), (64,90), (128,181), (256,362))
+            aspect_ratios = ((1/3,),) * len(anchor_sizes)
             rpn_anchor_generator = AnchorGenerator(
                 anchor_sizes, aspect_ratios
             )
@@ -79,12 +79,15 @@ class Jde_RCNN(GeneralizedRCNN):
                 out_channels * resolution ** 2,
                 representation_size)
 
+        emb_scale = math.sqrt(2) * math.log(num_ID-1) if num_ID>1 else 1
+
         if box_predictor is None:
             representation_size = 1024
             box_predictor = JDEPredictor(
                 representation_size,
                 num_classes,
-                len_embeddings
+                len_embeddings,
+                emb_scale
                 )
 
         roi_heads = JDE_RoIHeads(
@@ -117,11 +120,12 @@ class JDEPredictor(nn.Module):
         num_classes (int): number of output classes (including background)
     """
 
-    def __init__(self, in_channels, num_classes, size_embedding):
+    def __init__(self, in_channels, num_classes, size_embedding, emb_scale):
         super(JDEPredictor, self).__init__()
         self.cls_score = nn.Linear(in_channels, num_classes)
         self.bbox_pred = nn.Linear(in_channels, num_classes * 4)
         self.extract_embedding = nn.Linear(in_channels, size_embedding)
+        self.emb_scale = emb_scale
 
     def forward(self, x):
         if x.ndimension() == 4:
@@ -130,6 +134,7 @@ class JDEPredictor(nn.Module):
         scores = self.cls_score(x)
         bbox_deltas = self.bbox_pred(x)
         embedding = self.extract_embedding(x)
+        embedding = self.emb_scale * F.normalize(embedding)
 
         return scores, bbox_deltas, embedding
 
@@ -171,7 +176,6 @@ class JDE_RoIHeads(RoIHeads):
         self.s_c = nn.Parameter(-4.15*torch.ones(1))  # -4.15
         self.s_r = nn.Parameter(-4.85*torch.ones(1))  # -4.85
         self.s_id = nn.Parameter(-2.3*torch.ones(1))  # -2.3
-        self.emb_scale = math.sqrt(2) * math.log(self.num_ID-1) if self.num_ID>1 else 1
 
     def forward(self, features, proposals, image_shapes, targets=None):
         """
@@ -185,13 +189,13 @@ class JDE_RoIHeads(RoIHeads):
             for t in targets:
                 assert t["boxes"].dtype.is_floating_point, 'target boxes must of float type'
                 assert t["labels"].dtype == torch.int64, 'target labels must of int64 type'
+                assert t["ids"].dtype == torch.int64, 'target ids must of int64 type'
                 if self.has_keypoint:
                     assert t["keypoints"].dtype == torch.float32, 'target keypoints must of float type'
 
         if self.training:
-            proposals, matched_idxs, labels, regression_targets = self.select_training_samples(proposals, targets)
-            ids = labels.copy()
-            labels = [(label>0).long() for label in labels]
+            proposals, matched_idxs, labels, regression_targets, ids = self.select_training_samples(proposals, targets)
+        
         box_features = self.box_roi_pool(features, proposals, image_shapes)
         box_features = self.box_head(box_features)
         class_logits, box_regression, embeddings = self.box_predictor(box_features)
@@ -200,7 +204,11 @@ class JDE_RoIHeads(RoIHeads):
         if self.training:
             loss_classifier, loss_box_reg, loss_reid = self.JDE_loss(
                 class_logits, box_regression, embeddings, labels, regression_targets, ids)
-            losses = dict(loss_classifier=loss_classifier, loss_box_reg=loss_box_reg, loss_reid=loss_reid)
+
+            loss_total = torch.exp(-self.s_r)*loss_box_reg + torch.exp(-self.s_c)*loss_classifier \
+                 + torch.exp(-self.s_id)*loss_reid + (self.s_r + self.s_c + self.s_id)
+            loss_total *= 0.5
+            losses = dict(loss_total=loss_total, loss_classifier=loss_classifier, loss_box_reg=loss_box_reg, loss_reid=loss_reid)
         else:
             boxes, scores, labels = self.postprocess_detections(class_logits, box_regression, proposals, image_shapes)
             num_images = len(boxes)
@@ -214,69 +222,6 @@ class JDE_RoIHeads(RoIHeads):
                     )
                 )
 
-        # if self.has_mask:
-        #     mask_proposals = [p["boxes"] for p in result]
-        #     if self.training:
-        #         # during training, only focus on positive boxes
-        #         num_images = len(proposals)
-        #         mask_proposals = []
-        #         pos_matched_idxs = []
-        #         for img_id in range(num_images):
-        #             pos = torch.nonzero(labels[img_id] > 0).squeeze(1)
-        #             mask_proposals.append(proposals[img_id][pos])
-        #             pos_matched_idxs.append(matched_idxs[img_id][pos])
-
-        #     mask_features = self.mask_roi_pool(features, mask_proposals, image_shapes)
-        #     mask_features = self.mask_head(mask_features)
-        #     mask_logits = self.mask_predictor(mask_features)
-
-        #     loss_mask = {}
-        #     if self.training:
-        #         gt_masks = [t["masks"] for t in targets]
-        #         gt_labels = [t["labels"] for t in targets]
-        #         loss_mask = maskrcnn_loss(
-        #             mask_logits, mask_proposals,
-        #             gt_masks, gt_labels, pos_matched_idxs)
-        #         loss_mask = dict(loss_mask=loss_mask)
-        #     else:
-        #         labels = [r["labels"] for r in result]
-        #         masks_probs = maskrcnn_inference(mask_logits, labels)
-        #         for mask_prob, r in zip(masks_probs, result):
-        #             r["masks"] = mask_prob
-
-        #     losses.update(loss_mask)
-
-        # if self.has_keypoint:
-        #     keypoint_proposals = [p["boxes"] for p in result]
-        #     if self.training:
-        #         # during training, only focus on positive boxes
-        #         num_images = len(proposals)
-        #         keypoint_proposals = []
-        #         pos_matched_idxs = []
-        #         for img_id in range(num_images):
-        #             pos = torch.nonzero(labels[img_id] > 0).squeeze(1)
-        #             keypoint_proposals.append(proposals[img_id][pos])
-        #             pos_matched_idxs.append(matched_idxs[img_id][pos])
-
-        #     keypoint_features = self.keypoint_roi_pool(features, keypoint_proposals, image_shapes)
-        #     keypoint_features = self.keypoint_head(keypoint_features)
-        #     keypoint_logits = self.keypoint_predictor(keypoint_features)
-
-        #     loss_keypoint = {}
-        #     if self.training:
-        #         gt_keypoints = [t["keypoints"] for t in targets]
-        #         loss_keypoint = keypointrcnn_loss(
-        #             keypoint_logits, keypoint_proposals,
-        #             gt_keypoints, pos_matched_idxs)
-        #         loss_keypoint = dict(loss_keypoint=loss_keypoint)
-        #     else:
-        #         keypoints_probs, kp_scores = keypointrcnn_inference(keypoint_logits, keypoint_proposals)
-        #         for keypoint_prob, kps, r in zip(keypoints_probs, kp_scores, result):
-        #             r["keypoints"] = keypoint_prob
-        #             r["keypoints_scores"] = kps
-
-        #     losses.update(loss_keypoint)
-
         return result, losses
         
     
@@ -284,6 +229,7 @@ class JDE_RoIHeads(RoIHeads):
         labels = torch.cat(labels, dim=0)
         regression_targets = torch.cat(regression_targets, dim=0)
         ids = torch.cat(ids, dim=0)
+        index = ids > -1
 
         classification_loss = F.cross_entropy(class_logits, labels)
 
@@ -303,8 +249,63 @@ class JDE_RoIHeads(RoIHeads):
         box_loss = box_loss / labels.numel()
 
         reid_logits = self.identifier(embeddings)
-        # ids = dense_to_one_hot(np.array(ids)-1, self.num_ID)
-        reid_loss = F.cross_entropy(reid_logits, ids)
+        reid_loss = F.cross_entropy(reid_logits[index], ids[index])
 
         return classification_loss, box_loss, reid_loss
 
+    def select_training_samples(self, proposals, targets):
+        self.check_targets(targets)
+        gt_boxes = [t["boxes"] for t in targets]
+        gt_labels = [t["labels"] for t in targets]
+        gt_ids = [t["ids"] for t in targets]
+
+        # append ground-truth bboxes to propos
+        proposals = self.add_gt_proposals(proposals, gt_boxes)
+
+        # get matching gt indices for each proposal
+        matched_idxs, labels, ids = self.assign_targets_to_proposals(proposals, gt_boxes, gt_labels, gt_ids)
+        # sample a fixed proportion of positive-negative proposals
+        sampled_inds = self.subsample(labels)
+        matched_gt_boxes = []
+        num_images = len(proposals)
+        for img_id in range(num_images):
+            img_sampled_inds = sampled_inds[img_id]
+            proposals[img_id] = proposals[img_id][img_sampled_inds]
+            labels[img_id] = labels[img_id][img_sampled_inds]
+            ids[img_id] = ids[img_id][img_sampled_inds]
+            matched_idxs[img_id] = matched_idxs[img_id][img_sampled_inds]
+            matched_gt_boxes.append(gt_boxes[img_id][matched_idxs[img_id]])
+
+        regression_targets = self.box_coder.encode(matched_gt_boxes, proposals)
+        return proposals, matched_idxs, labels, regression_targets, ids
+
+    def assign_targets_to_proposals(self, proposals, gt_boxes, gt_labels, gt_ids):
+        matched_idxs = []
+        labels = []
+        ids = []
+        for proposals_in_image, gt_boxes_in_image, gt_labels_in_image, gt_ids_in_image in zip(proposals, gt_boxes, gt_labels, gt_ids):
+            match_quality_matrix = self.box_similarity(gt_boxes_in_image, proposals_in_image)
+            matched_idxs_in_image = self.proposal_matcher(match_quality_matrix)
+
+            clamped_matched_idxs_in_image = matched_idxs_in_image.clamp(min=0)
+
+            labels_in_image = gt_labels_in_image[clamped_matched_idxs_in_image]
+            labels_in_image = labels_in_image.to(dtype=torch.int64)
+
+            ids_in_image = gt_ids_in_image[clamped_matched_idxs_in_image]
+            ids_in_image = ids_in_image.to(dtype=torch.int64) 
+
+            # Label background (below the low threshold)
+            bg_inds = matched_idxs_in_image == self.proposal_matcher.BELOW_LOW_THRESHOLD
+            labels_in_image[bg_inds] = 0
+            ids_in_image[bg_inds] = -1
+
+            # Label ignore proposals (between low and high thresholds)
+            ignore_inds = matched_idxs_in_image == self.proposal_matcher.BETWEEN_THRESHOLDS
+            labels_in_image[ignore_inds] = -1  # -1 is ignored by sampler
+            ids_in_image[ignore_inds] = -1
+
+            matched_idxs.append(clamped_matched_idxs_in_image)
+            labels.append(labels_in_image)
+            ids.append(ids_in_image)
+        return matched_idxs, labels, ids
