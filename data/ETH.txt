@@ -1443,11 +1443,6 @@ dataset/ETH/images/Jelmoli/image_00000442_0.png
 dataset/ETH/images/Jelmoli/image_00000443_0.png
 dataset/ETH/images/Jelmoli/image_00000444_0.png
 dataset/ETH/images/Jelmoli/image_00000445_0.png
-dataset/ETH/images/Jelmoli/image_00000446_0.png
-dataset/ETH/images/Jelmoli/image_00000447_0.png
-dataset/ETH/images/Jelmoli/image_00000448_0.png
-dataset/ETH/images/Jelmoli/image_00000449_0.png
-dataset/ETH/images/Jelmoli/image_00000450_0.png
 dataset/ETH/images/Linthescher/image_00000930_0.png
 dataset/ETH/images/Linthescher/image_00000934_0.png
 dataset/ETH/images/Linthescher/image_00000938_0.png

@@ -249,8 +249,10 @@ class JDE_RoIHeads(RoIHeads):
         box_loss = box_loss / labels.numel()
 
         reid_logits = self.identifier(embeddings)
-        reid_loss = F.cross_entropy(reid_logits[index], ids[index])
-
+        if torch.sum(index):
+            reid_loss = F.cross_entropy(reid_logits[index], ids[index])
+        else:
+            reid_loss = torch.tensor(0)
         return classification_loss, box_loss, reid_loss
 
     def select_training_samples(self, proposals, targets):

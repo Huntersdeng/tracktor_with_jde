@@ -47,10 +47,10 @@ def train(
     # root = '/home/hunter/Document/torch'
     root = '/data/dgw'
 
-    # paths = {'CT':'./data/CalTech.txt', 'CUHK':'./data/CUHK.txt', 
-    #          'ETH':'./data/ETH.txt', 'M16':'/data/MOT16_train.txt', 
-    #          'PRW':'./data/PRW.txt', 'CP':'./data/cp_train.txt'}
-    paths = {'M16':'./data/MOT16_train.txt'}
+    #paths = {'CT':'./data/CalTech.txt', 
+    #         'ETH':'./data/ETH.txt', 'M16':'./data/MOT16_train.txt', 
+    #         'PRW':'./data/PRW.txt', 'CP':'./data/cp_train.txt'}
+    paths = {'M16':'./data/CalTech.txt'}
     transforms = T.Compose([T.ToTensor()])
     trainset = JointDataset(root=root, paths=paths, img_size=(640,480), augment=True, transforms=transforms)
     # trainset = LoadImagesAndLabels(root, paths['ETH'], img_size=(576,320), augment=True, transforms=transforms)
@@ -102,16 +102,28 @@ def train(
     for epoch in range(epochs):
         epoch += start_epoch
         loss_epoch_log = dict(loss_total=0, loss_classifier=0, loss_box_reg=0, loss_reid=0, loss_objectness=0, loss_rpn_box_reg=0)
-        for i, (imgs, labels, _, _, targets_len) in enumerate(dataloader):
+        for i, (imgs, labels, imgs_path, _, targets_len) in enumerate(dataloader):
+            flag = True
             targets = []
             imgs = imgs.cuda()
             labels = labels.cuda()
             for target_len, label in zip(np.squeeze(targets_len), labels):
+                if target_len==0:
+                    flag=False    
                 target = {}
                 target['boxes'] = label[0:int(target_len), 2:6]
                 target['ids'] = (label[0:int(target_len), 1]).long()
                 target['labels'] = torch.ones_like(target['ids'])
                 targets.append(target)
+            if not flag:
+                print(imgs_path)
+                print(np.squeeze(targets_len))
+                print(labels)
+                print(' ')
+                continue
+            #print(labels)
+            #print(targets_len)
+            #print(targets)
             losses = model(imgs, targets)
 
             if train_rpn_stage:
@@ -155,7 +167,7 @@ def train(
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--epochs', type=int, default=30, help='number of epochs')
+    parser.add_argument('--epochs', type=int, default=10, help='number of epochs')
     parser.add_argument('--batch-size', type=int, default=16, help='size of each image batch')
     parser.add_argument('--accumulated-batches', type=int, default=1, help='number of batches before optimizer step')
     parser.add_argument('--weights-from', type=str, default='weights/',
@@ -164,7 +176,7 @@ if __name__ == '__main__':
     parser.add_argument('--weights-to', type=str, default='weights/',
                         help='Store the trained weights after resuming training session. It will create a new folder '
                                 'with timestamp in the given path')
-    parser.add_argument('--save-model-after', type=int, default=10,
+    parser.add_argument('--save-model-after', type=int, default=5,
                         help='Save a checkpoint of model at given interval of epochs')
     parser.add_argument('--train-rpn-stage', action='store_true', help='for training rpn')
     parser.add_argument('--img-size', type=int, default=(640,480), nargs='+', help='pixels')
