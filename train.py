@@ -72,11 +72,14 @@ def train(
         model.cuda().train()
 
         # Set optimizer
-        optimizer = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
+        optimizer_rpn = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
+        optimizer_roi = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
 
         start_epoch = checkpoint['epoch'] + 1
-        if checkpoint['optimizer'] is not None:
-            optimizer.load_state_dict(checkpoint['optimizer'])
+        if checkpoint['optimizer_rpn'] is not None:
+            optimizer_rpn.load_state_dict(checkpoint['optimizer_rpn'])
+        if checkpoint['optimizer_roi'] is not None:
+            optimizer_roi.load_state_dict(checkpoint['optimizer_roi'])            
 
         del checkpoint  # current, saved
         with open('./log/loss.json', 'r') as file:
@@ -85,10 +88,16 @@ def train(
         model.cuda().train()
 
         # Set optimizer
-        optimizer = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9,
+        optimizer_roi = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9,
+                                    weight_decay=1e-4)
+        optimizer_rpn = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9,
                                     weight_decay=1e-4)
 
         loss_log = []
+
+    if not train_rpn_stage:
+        for i, (name, p) in enumerate(model.backbone.named_parameters()):
+            p.requires_grad = False
 
     for epoch in range(epochs):
         epoch += start_epoch
@@ -108,12 +117,16 @@ def train(
             if train_rpn_stage:
                 loss = losses['loss_objectness'] + losses['loss_rpn_box_reg']
                 loss.backward()
+                if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
+                    optimizer_rpn.step()
+                    optimizer_rpn.zero_grad()
             else:
                 losses['loss_total'].backward()
+                if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
+                    optimizer_roi.step()
+                    optimizer_roi.zero_grad()
 
-            if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
-                optimizer.step()
-                optimizer.zero_grad()
+            
 
             for key, val in losses.items():
                 loss_epoch_log[key] = float(val) + loss_epoch_log[key]
@@ -126,7 +139,8 @@ def train(
 
         checkpoint = {'epoch': epoch,
                       'model': model.state_dict(),
-                      'optimizer': optimizer.state_dict()}
+                      'optimizer_rpn': optimizer_rpn.state_dict(),
+                      'optimizer_roi': optimizer_roi.state_dict()}
 
 
         latest = osp.join(weights_to, 'latest.pt')
