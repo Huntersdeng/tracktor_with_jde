@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 warnings.filterwarnings('ignore')
+os.environ['CUDA_VISIBLE_DEVICES']='0'
 
 def train(
         weights_from,
@@ -89,7 +90,7 @@ def train(
 
         loss_log = []
 
-    for epoch in epochs:
+    for epoch in range(epochs):
         epoch += start_epoch
         loss_epoch_log = dict(loss_total=0, loss_classifier=0, loss_box_reg=0, loss_reid=0, loss_objectness=0, loss_rpn_box_reg=0)
         for i, (imgs, labels, _, _, targets_len) in enumerate(dataloader):
