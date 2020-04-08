@@ -47,10 +47,10 @@ def train(
     # root = '/home/hunter/Document/torch'
     root = '/data/dgw'
 
-    #paths = {'CT':'./data/CalTech.txt', 
-    #         'ETH':'./data/ETH.txt', 'M16':'./data/MOT16_train.txt', 
-    #         'PRW':'./data/PRW.txt', 'CP':'./data/cp_train.txt'}
-    paths = {'M16':'./data/CalTech.txt'}
+    paths = {'CT':'./data/CalTech.txt', 
+             'ETH':'./data/ETH.txt', 'M16':'./data/MOT16_train.txt', 
+             'PRW':'./data/PRW.txt', 'CP':'./data/cp_train.txt'}
+    #paths = {'M16':'./data/CalTech.txt'}
     transforms = T.Compose([T.ToTensor()])
     trainset = JointDataset(root=root, paths=paths, img_size=(640,480), augment=False, transforms=transforms)
     # trainset = LoadImagesAndLabels(root, paths['ETH'], img_size=(576,320), augment=True, transforms=transforms)
