@@ -95,6 +95,7 @@ def train(
         loss_epoch_log = dict(loss_total=0, loss_classifier=0, loss_box_reg=0, loss_reid=0, loss_objectness=0, loss_rpn_box_reg=0)
         for i, (imgs, labels, _, _, targets_len) in enumerate(dataloader):
             targets = []
+            imgs = imgs.cuda()
             labels = labels.cuda()
             for target_len, label in zip(np.squeeze(targets_len), labels):
                 target = {}
@@ -102,11 +103,11 @@ def train(
                 target['ids'] = (label[0:int(target_len), 1]).long()
                 target['labels'] = torch.ones_like(target['ids'])
                 targets.append(target)
-            losses = model(imgs.cuda(), targets)
+            losses = model(imgs, targets)
 
             if train_rpn_stage:
-                losses['loss_objectness'].backward()
-                losses['loss_rpn_box_reg'].backward()
+                loss = losses['loss_objectness'] + losses['loss_rpn_box_reg']
+                loss.backward()
             else:
                 losses['loss_total'].backward()
 
@@ -119,7 +120,8 @@ def train(
 
         for key, val in loss_epoch_log.items():
             loss_epoch_log[key] =loss_epoch_log[key]/i
-
+        print("loss in epoch %d: "%(epoch))
+        print(loss_epoch_log)
         loss_log.append(loss_epoch_log)
 
         checkpoint = {'epoch': epoch,
