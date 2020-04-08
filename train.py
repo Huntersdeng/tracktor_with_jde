@@ -52,7 +52,7 @@ def train(
     #         'PRW':'./data/PRW.txt', 'CP':'./data/cp_train.txt'}
     paths = {'M16':'./data/CalTech.txt'}
     transforms = T.Compose([T.ToTensor()])
-    trainset = JointDataset(root=root, paths=paths, img_size=(640,480), augment=True, transforms=transforms)
+    trainset = JointDataset(root=root, paths=paths, img_size=(640,480), augment=False, transforms=transforms)
     # trainset = LoadImagesAndLabels(root, paths['ETH'], img_size=(576,320), augment=True, transforms=transforms)
 
     dataloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True,
