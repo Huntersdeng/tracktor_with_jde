@@ -149,7 +149,7 @@ if __name__ == '__main__':
                                 'with timestamp in the given path')
     parser.add_argument('--save-model-after', type=int, default=10,
                         help='Save a checkpoint of model at given interval of epochs')
-    parser.add_argument('--train_rpn_stage', type=int, default=0, help='1 for training rpn, 0 for training roi head')
+    parser.add_argument('--train-rpn-stage', action='store_true', help='for training rpn')
     parser.add_argument('--img-size', type=int, default=(640,480), nargs='+', help='pixels')
     parser.add_argument('--resume', action='store_true', help='resume training flag')
     # parser.add_argument('--print-interval', type=int, default=40, help='print interval')
