@@ -37,7 +37,7 @@ def train(
     model_name = opt.backbone_name + '_img_size' + str(img_size[0]) + '_' + str(img_size[1]) 
     weights_to = osp.join(weights_to, model_name)
     loss_log_path = './log/loss_' + model_name + '.json'
-    # mkdir_if_missing(weights_to)
+    mkdir_if_missing(weights_to)
     if resume:
         latest_resume = osp.join(weights_from, 'latest.pt')
 
@@ -59,7 +59,7 @@ def train(
     backbone.out_channels = 256
 
     model = Jde_RCNN(backbone, num_ID=trainset.nID)
-
+    model = torch.nn.DataParallel(model)
     start_epoch = 0
     if resume:
         checkpoint = torch.load(latest_resume, map_location='cpu')
@@ -145,7 +145,6 @@ def train(
                       'optimizer_rpn': optimizer_rpn.state_dict(),
                       'optimizer_roi': optimizer_roi.state_dict()}
 
-        mkdir_if_missing(weights_to)
         latest = osp.join(weights_to, 'latest.pt')
         torch.save(checkpoint, latest)
         if epoch % save_every == 0 and epoch != 0:
@@ -159,7 +158,7 @@ def train(
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--epochs', type=int, default=10, help='number of epochs')
-    parser.add_argument('--batch-size', type=int, default=16, help='size of each image batch')
+    parser.add_argument('--batch-size', type=int, default=8, help='size of each image batch')
     parser.add_argument('--accumulated-batches', type=int, default=1, help='number of batches before optimizer step')
     parser.add_argument('--weights-from', type=str, default='../weights/',
                         help='Path for getting the trained model for resuming training (Should only be used with '
@@ -170,7 +169,7 @@ if __name__ == '__main__':
     parser.add_argument('--save-model-after', type=int, default=2,
                         help='Save a checkpoint of model at given interval of epochs')
     parser.add_argument('--train-rpn-stage', action='store_true', help='for training rpn')
-    parser.add_argument('--img-size', type=int, default=(640,480), nargs='+', help='pixels')
+    parser.add_argument('--img-size', type=int, default=(960,720), nargs='+', help='pixels')
     parser.add_argument('--resume', action='store_true', help='resume training flag')
     # parser.add_argument('--print-interval', type=int, default=40, help='print interval')
     # parser.add_argument('--test-interval', type=int, default=9, help='test interval')
