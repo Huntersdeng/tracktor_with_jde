@@ -39,7 +39,7 @@ def train(
     timme = timme.replace(' ', '_')
     timme = timme.replace(':', '_')
     weights_to = osp.join(weights_to, 'run' + timme)
-    mkdir_if_missing(weights_to)
+    #mkdir_if_missing(weights_to)
     if resume:
         latest_resume = osp.join(weights_from, 'latest.pt')
 
@@ -50,7 +50,7 @@ def train(
     paths = {'CT':'./data/CalTech.txt', 
              'ETH':'./data/ETH.txt', 'M16':'./data/MOT16_train.txt', 
              'PRW':'./data/PRW.txt', 'CP':'./data/cp_train.txt'}
-    #paths = {'M16':'./data/CalTech.txt'}
+    #paths = {'M16':'./data/cp_train.txt'}
     transforms = T.Compose([T.ToTensor()])
     trainset = JointDataset(root=root, paths=paths, img_size=(640,480), augment=False, transforms=transforms)
     # trainset = LoadImagesAndLabels(root, paths['ETH'], img_size=(576,320), augment=True, transforms=transforms)
@@ -82,8 +82,9 @@ def train(
             optimizer_roi.load_state_dict(checkpoint['optimizer_roi'])            
 
         del checkpoint  # current, saved
-        with open('./log/loss.json', 'r') as file:
-            loss_log = json.load(file)
+        #with open('./log/loss.json', 'r') as file:
+        #    loss_log = json.load(file)
+        loss_log = []
     else:
         model.cuda().train()
 
@@ -154,15 +155,15 @@ def train(
                       'optimizer_rpn': optimizer_rpn.state_dict(),
                       'optimizer_roi': optimizer_roi.state_dict()}
 
-
+        mkdir_if_missing(weights_to)
         latest = osp.join(weights_to, 'latest.pt')
         torch.save(checkpoint, latest)
         if epoch % save_every == 0 and epoch != 0:
             # making the checkpoint lite
             checkpoint["optimizer"] = []
             torch.save(checkpoint, osp.join(weights_to, "weights_epoch_" + str(epoch) + ".pt"))
- 
-    
+    with open('./log/loss.json', 'w+') as f:
+        json.dump(loss_log, f) 
 
 
 if __name__ == '__main__':
@@ -176,7 +177,7 @@ if __name__ == '__main__':
     parser.add_argument('--weights-to', type=str, default='weights/',
                         help='Store the trained weights after resuming training session. It will create a new folder '
                                 'with timestamp in the given path')
-    parser.add_argument('--save-model-after', type=int, default=5,
+    parser.add_argument('--save-model-after', type=int, default=2,
                         help='Save a checkpoint of model at given interval of epochs')
     parser.add_argument('--train-rpn-stage', action='store_true', help='for training rpn')
     parser.add_argument('--img-size', type=int, default=(640,480), nargs='+', help='pixels')
