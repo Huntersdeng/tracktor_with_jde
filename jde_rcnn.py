@@ -112,12 +112,14 @@ class Jde_RCNN(GeneralizedRCNN):
 
 class JDEPredictor(nn.Module):
     """
-    Standard classification + bounding box regression layers
-    for Fast R-CNN.
+    Standard classification + bounding box regression + enbedding extracting layers
+    for our model
 
     Arguments:
-        in_channels (int): number of input channels
-        num_classes (int): number of output classes (including background)
+        in_channels    (int): number of input channels
+        num_classes    (int): number of output classes (including background)
+        size_embedding (int): number of the embeddings' dimension
+        emb_scale      (int): the scale of embedding
     """
 
     def __init__(self, in_channels, num_classes, size_embedding, emb_scale):
@@ -229,7 +231,6 @@ class JDE_RoIHeads(RoIHeads):
         labels = torch.cat(labels, dim=0)
         regression_targets = torch.cat(regression_targets, dim=0)
         ids = torch.cat(ids, dim=0)
-        index = ids > -1
 
         classification_loss = F.cross_entropy(class_logits, labels)
 
@@ -248,7 +249,9 @@ class JDE_RoIHeads(RoIHeads):
         )
         box_loss = box_loss / labels.numel()
 
+        # compute the reid loss for positive targets
         reid_logits = self.identifier(embeddings)
+        index = ids > -1
         if torch.sum(index):
             reid_loss = F.cross_entropy(reid_logits[index], ids[index])
         else:
