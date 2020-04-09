@@ -58,7 +58,7 @@ def train(
     dataloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True,
                                                 num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate_fn)
     
-    backbone = resnet_fpn_backbone('resnet50', True)
+    backbone = resnet_fpn_backbone('resnet101', True)
     backbone.out_channels = 256
 
     model = Jde_RCNN(backbone, num_ID=trainset.nID)
@@ -82,9 +82,9 @@ def train(
             optimizer_roi.load_state_dict(checkpoint['optimizer_roi'])            
 
         del checkpoint  # current, saved
-        #with open('./log/loss.json', 'r') as file:
-        #    loss_log = json.load(file)
-        loss_log = []
+        with open('./log/loss.json', 'r') as file:
+           loss_log = json.load(file)
+        
     else:
         model.cuda().train()
 
@@ -108,6 +108,7 @@ def train(
             targets = []
             imgs = imgs.cuda()
             labels = labels.cuda()
+            loss_iter_log = {}
             for target_len, label in zip(np.squeeze(targets_len), labels):
                 if target_len==0:
                     flag=False    
@@ -142,13 +143,14 @@ def train(
             
 
             for key, val in losses.items():
+                loss_iter_log[key] = float(val)
                 loss_epoch_log[key] = float(val) + loss_epoch_log[key]
-
+            loss_log.append(loss_iter_log)
         for key, val in loss_epoch_log.items():
             loss_epoch_log[key] =loss_epoch_log[key]/i
         print("loss in epoch %d: "%(epoch))
         print(loss_epoch_log)
-        loss_log.append(loss_epoch_log)
+        
 
         checkpoint = {'epoch': epoch,
                       'model': model.state_dict(),
