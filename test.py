@@ -35,8 +35,10 @@ def test(
     # Load weights to resume from
     model.load_state_dict(checkpoint['model'])
     model.cuda().eval()
+    # model.eval()
     # Get dataloader
     root = '/data/dgw'
+    # root = '/home/hunter/Document/torch'
     paths = {'CP_val':'./data/cp_val.txt'}
     transforms = T.Compose([T.ToTensor()])
     valset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
@@ -52,12 +54,13 @@ def test(
     for batch_i, (imgs, targets, paths, shapes, targets_len) in enumerate(dataloader):
         t = time.time()
         out = model(imgs.cuda())
+        # out = model(imgs)
         output = []
         for i,o in enumerate(out):
             boxes = xyxy2xywh(o['boxes']).cpu()
             scores = o['scores'].cpu().reshape(-1,1)
             labels = o['labels'].cpu().reshape(-1,1)
-            output.append(np.concatenate((boxes,scores,scores,labels), axis=1))
+            output.append(torch.Tensor(np.concatenate((boxes,scores,scores,labels),axis=1)))
         output = non_max_suppression(output, conf_thres=conf_thres, nms_thres=nms_thres)
         for i, o in enumerate(output):
             if o is not None:
@@ -86,14 +89,8 @@ def test(
                 mAPs.append(0), mR.append(0), mP.append(0)
                 continue
             else:
-                target_cls = labels[:, 0]
-
-                # Extract target boxes as (x1, y1, x2, y2)
-                target_boxes = xywh2xyxy(labels[:, 2:6]) 
-                target_boxes[:, 0] *= img_size[0]
-                target_boxes[:, 2] *= img_size[0]
-                target_boxes[:, 1] *= img_size[1]
-                target_boxes[:, 3] *= img_size[1]
+                target_cls = torch.zeros_like(labels[:, 0])
+                target_boxes = labels[:, 2:6]
 
                 detected = []
                 for *pred_bbox, conf, obj_conf  in detections:
@@ -104,7 +101,7 @@ def test(
                     # Extract index of largest overlap
                     best_i = np.argmax(iou)
                     # If overlap exceeds threshold and classification is correct mark as correct
-                    if iou[best_i] > iou_thres and obj_pred == labels[best_i, 0] and best_i not in detected:
+                    if iou[best_i] > iou_thres and best_i not in detected:
                         correct.append(1)
                         detected.append(best_i)
                     else:
@@ -217,9 +214,9 @@ def test_emb(
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='test.py')
-    parser.add_argument('--img-size', type=int, default=(640,480), nargs='+', help='pixels')
+    parser.add_argument('--img-size', type=int, default=(960,720), nargs='+', help='pixels')
     parser.add_argument('--batch-size', type=int, default=8, help='size of each image batch')
-    parser.add_argument('--weights', type=str, default='../weights/latest.pt', help='path to weights file')
+    parser.add_argument('--weights', type=str, default='../weights/resnet101_img_size960_720/latest.pt', help='path to weights file')
     parser.add_argument('--iou-thres', type=float, default=0.5, help='iou threshold required to qualify as detected')
     parser.add_argument('--conf-thres', type=float, default=0.3, help='object confidence threshold')
     parser.add_argument('--nms-thres', type=float, default=0.5, help='iou threshold for non-maximum suppression')
