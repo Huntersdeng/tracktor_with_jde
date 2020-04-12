@@ -59,7 +59,7 @@ def train(
     backbone.out_channels = 256
 
     model = Jde_RCNN(backbone, num_ID=trainset.nID)
-    model = torch.nn.DataParallel(model)
+    # model = torch.nn.DataParallel(model)
     start_epoch = 0
     if resume:
         checkpoint = torch.load(latest_resume, map_location='cpu')
@@ -86,10 +86,10 @@ def train(
         model.cuda().train()
 
         # Set optimizer
-        optimizer_roi = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9,
-                                    weight_decay=1e-4)
-        optimizer_rpn = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9,
-                                    weight_decay=1e-4)
+        optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9,
+                                    weight_decay=5e-4)
+        optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9,
+                                    weight_decay=5e-4)
 
         loss_log = []
 
@@ -97,7 +97,7 @@ def train(
 
     for epoch in range(epochs):
         epoch += start_epoch
-        if epoch>=train_rpn_stage:
+        if epoch<train_rpn_stage:
             for i, (name, p) in enumerate(model.module.backbone.named_parameters()):
                 p.requires_grad = False
         loss_epoch_log = dict(loss_total=0, loss_classifier=0, loss_box_reg=0, loss_reid=0, loss_objectness=0, loss_rpn_box_reg=0)
@@ -132,13 +132,13 @@ def train(
         ## print and log the loss
 
             for key, val in losses.items():
-                loss_iter_log[key] = float(val)
                 loss_epoch_log[key] = float(val) + loss_epoch_log[key]
-            loss_log.append(loss_iter_log)
+            
         for key, val in loss_epoch_log.items():
             loss_epoch_log[key] =loss_epoch_log[key]/i
         print("loss in epoch %d: "%(epoch))
         print(loss_epoch_log)
+        loss_log.append(loss_epoch_log)
         
 
         checkpoint = {'epoch': epoch,
@@ -158,7 +158,7 @@ def train(
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--epochs', type=int, default=15, help='number of epochs')
+    parser.add_argument('--epochs', type=int, default=30, help='number of epochs')
     parser.add_argument('--batch-size', type=int, default=8, help='size of each image batch')
     parser.add_argument('--accumulated-batches', type=int, default=1, help='number of batches before optimizer step')
     parser.add_argument('--weights-from', type=str, default='../weights/',
@@ -169,12 +169,12 @@ if __name__ == '__main__':
                                 'with timestamp in the given path')
     parser.add_argument('--save-model-after', type=int, default=2,
                         help='Save a checkpoint of model at given interval of epochs')
-    parser.add_argument('--train-rpn-stage', type=int, default=6, help='for training rpn')
+    parser.add_argument('--train-rpn-stage', type=int, default=10, help='for training rpn')
     parser.add_argument('--img-size', type=int, default=(640,480), nargs='+', help='pixels')
     parser.add_argument('--resume', action='store_true', help='resume training flag')
     # parser.add_argument('--print-interval', type=int, default=40, help='print interval')
     # parser.add_argument('--test-interval', type=int, default=9, help='test interval')
-    parser.add_argument('--lr', type=float, default=1e-2, help='init lr')
+    parser.add_argument('--lr', type=float, default=5e-4, help='init lr')
     parser.add_argument('--unfreeze-bn', action='store_true', help='unfreeze bn')
     parser.add_argument('--backbone-name', type=str, default='resnet101', help='backbone name')
     opt = parser.parse_args()
