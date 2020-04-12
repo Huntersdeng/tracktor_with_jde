@@ -154,7 +154,7 @@ def test_emb(
     backbone = resnet_fpn_backbone(opt.backbone_name, True)
     backbone.out_channels = 256
     nC = 1
-    model = Jde_RCNN(backbone, num_ID=1000)
+    model = Jde_RCNN(backbone, num_ID=1129)
     model = torch.nn.DataParallel(model)
     checkpoint = torch.load(weights, map_location='cpu')
     # Load weights to resume from
