@@ -79,9 +79,9 @@ def train(
             optimizer_roi.load_state_dict(checkpoint['optimizer_roi'])            
 
         del checkpoint  # current, saved
-        with open(loss_log_path, 'r') as file:
-           loss_log = json.load(file)
-        
+        #with open(loss_log_path, 'r') as file:
+        #   loss_log = json.load(file)
+        loss_log = []
     else:
         model.cuda().train()
 
@@ -98,7 +98,7 @@ def train(
     for epoch in range(epochs):
         epoch += start_epoch
         if epoch>=train_rpn_stage:
-            for i, (name, p) in enumerate(model.backbone.named_parameters()):
+            for i, (name, p) in enumerate(model.module.backbone.named_parameters()):
                 p.requires_grad = False
         loss_epoch_log = dict(loss_total=0, loss_classifier=0, loss_box_reg=0, loss_reid=0, loss_objectness=0, loss_rpn_box_reg=0)
         for i, (imgs, labels, imgs_path, _, targets_len) in enumerate(dataloader):
@@ -170,7 +170,7 @@ if __name__ == '__main__':
     parser.add_argument('--save-model-after', type=int, default=2,
                         help='Save a checkpoint of model at given interval of epochs')
     parser.add_argument('--train-rpn-stage', type=int, default=6, help='for training rpn')
-    parser.add_argument('--img-size', type=int, default=(960,720), nargs='+', help='pixels')
+    parser.add_argument('--img-size', type=int, default=(640,480), nargs='+', help='pixels')
     parser.add_argument('--resume', action='store_true', help='resume training flag')
     # parser.add_argument('--print-interval', type=int, default=40, help='print interval')
     # parser.add_argument('--test-interval', type=int, default=9, help='test interval')
