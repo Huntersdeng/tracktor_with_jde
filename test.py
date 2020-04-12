@@ -155,15 +155,16 @@ def test_emb(
     backbone.out_channels = 256
     nC = 1
     model = Jde_RCNN(backbone, num_ID=1129)
-    model.eval_embedding()
+    # model.eval_embedding()
+    model.cuda().eval_embedding()
     model = torch.nn.DataParallel(model)
     checkpoint = torch.load(weights, map_location='cpu')
     # Load weights to resume from
     model.load_state_dict(checkpoint['model'])
 
     # Get dataloader
-    # root = '/data/dgw'
-    root = '/home/hunter/Document/torch'
+    root = '/data/dgw'
+    # root = '/home/hunter/Document/torch'
     paths = {'M16':'./data/MOT16_train.txt'}
     transforms = T.Compose([T.ToTensor()])
     valset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
@@ -172,16 +173,15 @@ def test_emb(
                                                 num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate_fn)
 
     # model.cuda().eval()
-    # model.cuda().eval_embedding()
-    model.eval()
+    # model.eval()
 
     embedding, id_labels = [], []
     print('Extracting pedestrain features...')
     for batch_i, (imgs, labels, paths, shapes, targets_len) in enumerate(dataloader):
         t = time.time()
         targets = []
-        # imgs = imgs.cuda()
-        # labels = labels.cuda()
+        imgs = imgs.cuda()
+        labels = labels.cuda()
         for target_len, label in zip(np.squeeze(targets_len), labels):
             ## convert the input to demanded format
             target = {}
