@@ -28,7 +28,7 @@ def test(
     backbone = resnet_fpn_backbone(opt.backbone_name, True)
     backbone.out_channels = 256
     nC = 1
-    model = Jde_RCNN(backbone, num_ID=1000)
+    model = Jde_RCNN(backbone, num_ID=1129)
     model = torch.nn.DataParallel(model)
     checkpoint = torch.load(weights, map_location='cpu')
     # Load weights to resume from
@@ -215,15 +215,14 @@ def test_emb(
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='test.py')
-    parser.add_argument('--batch-size', type=int, default=40, help='size of each image batch')
-    parser.add_argument('--cfg', type=str, default='cfg/yolov3.cfg', help='cfg file path')
-    parser.add_argument('--data-cfg', type=str, default='cfg/ccmcpe.json', help='data config')
-    parser.add_argument('--weights', type=str, default='weights/latest.pt', help='path to weights file')
+    parser.add_argument('--batch-size', type=int, default=8, help='size of each image batch')
+    parser.add_argument('--weights', type=str, default='../weights/latest.pt', help='path to weights file')
     parser.add_argument('--iou-thres', type=float, default=0.5, help='iou threshold required to qualify as detected')
     parser.add_argument('--conf-thres', type=float, default=0.3, help='object confidence threshold')
     parser.add_argument('--nms-thres', type=float, default=0.5, help='iou threshold for non-maximum suppression')
     parser.add_argument('--print-interval', type=int, default=10, help='size of each image dimension')
     parser.add_argument('--test-emb', action='store_true', help='test embedding')
+    parser.add_argument('--backbone-name', type=str, default='resnet101', help='test embedding')
     opt = parser.parse_args()
     print(opt, end='\n\n')
 
@@ -238,6 +237,7 @@ if __name__ == '__main__':
                 opt.conf_thres,
                 opt.nms_thres,
                 opt.print_interval,
+                opt
             )
         else:
             mAP = test(
