@@ -155,17 +155,17 @@ def test_emb(
     backbone.out_channels = 256
     nC = 1
     model = Jde_RCNN(backbone, num_ID=1129)
-    # model.eval_embedding()
-    model.cuda().eval_embedding()
+    model.eval_embedding()
+    # model.cuda().eval_embedding()
     model = torch.nn.DataParallel(model)
     checkpoint = torch.load(weights, map_location='cpu')
     # Load weights to resume from
     model.load_state_dict(checkpoint['model'])
 
     # Get dataloader
-    root = '/data/dgw'
-    # root = '/home/hunter/Document/torch'
-    paths = {'M16':'./data/MOT16_train.txt'}
+    # root = '/data/dgw'
+    root = '/home/hunter/Document/torch'
+    paths = {'M16':'./data/MOT16_train_.txt'}
     transforms = T.Compose([T.ToTensor()])
     valset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
 
@@ -173,15 +173,15 @@ def test_emb(
                                                 num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate_fn)
 
     # model.cuda().eval()
-    # model.eval()
+    model.eval()
 
     embedding, id_labels = [], []
     print('Extracting pedestrain features...')
     for batch_i, (imgs, labels, paths, shapes, targets_len) in enumerate(dataloader):
         t = time.time()
         targets = []
-        imgs = imgs.cuda()
-        labels = labels.cuda()
+        # imgs = imgs.cuda()
+        # labels = labels.cuda()
         for target_len, label in zip(np.squeeze(targets_len), labels):
             ## convert the input to demanded format
             target = {}
@@ -193,7 +193,7 @@ def test_emb(
         for out in output:
             for feat, label in zip(out['embeddings'], out['labels']):
                 if label != -1:
-                    embedding.append(feat)
+                    embedding.append(feat.view(1,-1))
                     id_labels.append(label)
 
         if batch_i % print_interval==0:
@@ -228,7 +228,7 @@ def test_emb(
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='test.py')
     parser.add_argument('--img-size', type=int, default=(960,720), nargs='+', help='pixels')
-    parser.add_argument('--batch-size', type=int, default=8, help='size of each image batch')
+    parser.add_argument('--batch-size', type=int, default=4, help='size of each image batch')
     parser.add_argument('--weights', type=str, default='../weights/trained/2/latest.pt', help='path to weights file')
     parser.add_argument('--iou-thres', type=float, default=0.5, help='iou threshold required to qualify as detected')
     parser.add_argument('--conf-thres', type=float, default=0.3, help='object confidence threshold')
@@ -240,26 +240,26 @@ if __name__ == '__main__':
     print(opt, end='\n\n')
     os.environ['CUDA_VISIBLE_DEVICES'] = '2'
     with torch.no_grad():
-        if opt.test_emb:
-            res = test_emb(
-                opt.weights,
-                opt.img_size,
-                opt.batch_size,
-                opt.iou_thres,
-                opt.conf_thres,
-                opt.nms_thres,
-                opt.print_interval,
-                opt
-            )
-        else:
-            mAP = test(
-                opt.weights,
-                opt.img_size,
-                opt.batch_size,
-                opt.iou_thres,
-                opt.conf_thres,
-                opt.nms_thres,
-                opt.print_interval,
-                opt
-            )
+        # if opt.test_emb:
+        res = test_emb(
+            opt.weights,
+            opt.img_size,
+            opt.batch_size,
+            opt.iou_thres,
+            opt.conf_thres,
+            opt.nms_thres,
+            opt.print_interval,
+            opt
+        )
+        # else:
+        #     mAP = test(
+        #         opt.weights,
+        #         opt.img_size,
+        #         opt.batch_size,
+        #         opt.iou_thres,
+        #         opt.conf_thres,
+        #         opt.nms_thres,
+        #         opt.print_interval,
+        #         opt
+        #     )
 

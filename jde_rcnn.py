@@ -260,26 +260,32 @@ class JDE_RoIHeads(RoIHeads):
             if not self.eval_embed:
                 boxes, scores, labels = self.postprocess_detections(class_logits, box_regression, proposals, image_shapes)
                 num_images = len(boxes)
+                targets_len = [len(box) for box in boxes]
                 for i in range(num_images):
+                    start = 0
                     result.append(
                         dict(
                             boxes=boxes[i],
                             labels=labels[i],
                             scores=scores[i],
-                            embeddings=embeddings[i]
+                            embeddings=embeddings[start:start+targets_len[i]]
                         )
                     )
+                    start += targets_len[i]
             else:
                 num_images = len(boxes)
+                targets_len = [len(box) for box in boxes]
                 for i in range(num_images):
+                    start = 0
                     result.append(
                         dict(
                             boxes=boxes[i],
                             labels=targets[i]['ids'],
                             scores=None,
-                            embeddings=embeddings[i]
+                            embeddings=embeddings[start:start+targets_len[i]]
                         )
                     )
+                    start += targets_len[i]
 
 
         return result, losses
