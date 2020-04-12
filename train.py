@@ -69,7 +69,7 @@ def train(
         model.cuda().train()
 
         # Set optimizer
-        optimizer_rpn = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
+        optimizer_rpn = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr/5, momentum=.9)
         optimizer_roi = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
 
         start_epoch = checkpoint['epoch'] + 1
@@ -86,7 +86,7 @@ def train(
         model.cuda().train()
 
         # Set optimizer
-        optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9,
+        optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr/5, momentum=.9,
                                     weight_decay=5e-4)
         optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9,
                                     weight_decay=5e-4)
@@ -124,6 +124,8 @@ def train(
                     optimizer_rpn.step()
                     optimizer_rpn.zero_grad()
             else:
+                loss = (losses['loss_objectness'] + losses['loss_rpn_box_reg'])*0.2
+                loss.backward(retain_graph=True)
                 losses['loss_total'].backward()
                 if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
                     optimizer_roi.step()
@@ -167,15 +169,12 @@ if __name__ == '__main__':
     parser.add_argument('--weights-to', type=str, default='../weights/',
                         help='Store the trained weights after resuming training session. It will create a new folder '
                                 'with timestamp in the given path')
-    parser.add_argument('--save-model-after', type=int, default=2,
+    parser.add_argument('--save-model-after', type=int, default=5,
                         help='Save a checkpoint of model at given interval of epochs')
     parser.add_argument('--train-rpn-stage', type=int, default=10, help='for training rpn')
-    parser.add_argument('--img-size', type=int, default=(640,480), nargs='+', help='pixels')
+    parser.add_argument('--img-size', type=int, default=(960,720), nargs='+', help='pixels')
     parser.add_argument('--resume', action='store_true', help='resume training flag')
-    # parser.add_argument('--print-interval', type=int, default=40, help='print interval')
-    # parser.add_argument('--test-interval', type=int, default=9, help='test interval')
     parser.add_argument('--lr', type=float, default=5e-4, help='init lr')
-    parser.add_argument('--unfreeze-bn', action='store_true', help='unfreeze bn')
     parser.add_argument('--backbone-name', type=str, default='resnet101', help='backbone name')
     opt = parser.parse_args()
 
