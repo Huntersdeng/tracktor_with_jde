@@ -143,7 +143,7 @@ def test(
 
 def test_emb(
             weights,
-            img_size=img_size,
+            img_size=(640,480),
             batch_size=16,
             iou_thres=0.5,
             conf_thres=0.3,
@@ -215,6 +215,7 @@ def test_emb(
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='test.py')
+    parser.add_argument('--img-size', type=int, default=(640,480), nargs='+', help='pixels')
     parser.add_argument('--batch-size', type=int, default=8, help='size of each image batch')
     parser.add_argument('--weights', type=str, default='../weights/latest.pt', help='path to weights file')
     parser.add_argument('--iou-thres', type=float, default=0.5, help='iou threshold required to qualify as detected')
@@ -222,10 +223,10 @@ if __name__ == '__main__':
     parser.add_argument('--nms-thres', type=float, default=0.5, help='iou threshold for non-maximum suppression')
     parser.add_argument('--print-interval', type=int, default=10, help='size of each image dimension')
     parser.add_argument('--test-emb', action='store_true', help='test embedding')
-    parser.add_argument('--backbone-name', type=str, default='resnet101', help='test embedding')
+    parser.add_argument('--backbone-name', type=str, default='resnet101', help='backbone name')
     opt = parser.parse_args()
     print(opt, end='\n\n')
-
+    os.environ['CUDA_VISIBLE_DEVICES'] = '2'
     with torch.no_grad():
         if opt.test_emb:
             res = test_emb(
@@ -242,6 +243,7 @@ if __name__ == '__main__':
         else:
             mAP = test(
                 opt.weights,
+                opt.img_size,
                 opt.batch_size,
                 opt.iou_thres,
                 opt.conf_thres,
