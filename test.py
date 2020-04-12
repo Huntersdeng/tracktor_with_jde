@@ -55,8 +55,8 @@ def test(
         output = []
         for i,o in enumerate(out):
             boxes = xyxy2xywh(o['boxes']).cpu()
-            scores = o['scores'].cpu()
-            labels = o['labels'].cpu()
+            scores = o['scores'].cpu().reshape(-1,1)
+            labels = o['labels'].cpu().reshape(-1,1)
             output.append(np.concatenate((boxes,scores,scores,labels), axis=1))
         output = non_max_suppression(output, conf_thres=conf_thres, nms_thres=nms_thres)
         for i, o in enumerate(output):
