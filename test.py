@@ -155,33 +155,46 @@ def test_emb(
     backbone.out_channels = 256
     nC = 1
     model = Jde_RCNN(backbone, num_ID=1129)
+    model.eval_embedding()
     model = torch.nn.DataParallel(model)
     checkpoint = torch.load(weights, map_location='cpu')
     # Load weights to resume from
     model.load_state_dict(checkpoint['model'])
 
     # Get dataloader
-    root = '/data/dgw'
-    paths = {'CP_val':'./data/cp_val.txt'}
+    # root = '/data/dgw'
+    root = '/home/hunter/Document/torch'
+    paths = {'M16':'./data/MOT16_train.txt'}
     transforms = T.Compose([T.ToTensor()])
     valset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
 
     dataloader = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=True,
                                                 num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate_fn)
 
-    model.cuda().eval()
+    # model.cuda().eval()
+    # model.cuda().eval_embedding()
+    model.eval()
 
     embedding, id_labels = [], []
     print('Extracting pedestrain features...')
-    for batch_i, (imgs, targets, paths, shapes, targets_len) in enumerate(dataloader):
+    for batch_i, (imgs, labels, paths, shapes, targets_len) in enumerate(dataloader):
         t = time.time()
-        output = model(imgs.cuda(), targets.cuda(), targets_len.cuda()).squeeze()
-
+        targets = []
+        # imgs = imgs.cuda()
+        # labels = labels.cuda()
+        for target_len, label in zip(np.squeeze(targets_len), labels):
+            ## convert the input to demanded format
+            target = {}
+            target['boxes'] = label[0:int(target_len), 2:6]
+            target['ids'] = (label[0:int(target_len), 1]).long()
+            target['labels'] = torch.ones_like(target['ids'])
+            targets.append(target)
+        output = model(imgs, targets)
         for out in output:
-            feat, label = out[:-1], out[-1].long()
-            if label != -1:
-                embedding.append(feat)
-                id_labels.append(label)
+            for feat, label in zip(out['embeddings'], out['labels']):
+                if label != -1:
+                    embedding.append(feat)
+                    id_labels.append(label)
 
         if batch_i % print_interval==0:
             print('Extracting {}/{}, # of instances {}, time {:.2f} sec.'.format(batch_i, len(dataloader), len(id_labels), time.time() - t))
@@ -216,7 +229,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='test.py')
     parser.add_argument('--img-size', type=int, default=(960,720), nargs='+', help='pixels')
     parser.add_argument('--batch-size', type=int, default=8, help='size of each image batch')
-    parser.add_argument('--weights', type=str, default='../weights/resnet101_img_size960_720/latest.pt', help='path to weights file')
+    parser.add_argument('--weights', type=str, default='../weights/trained/2/latest.pt', help='path to weights file')
     parser.add_argument('--iou-thres', type=float, default=0.5, help='iou threshold required to qualify as detected')
     parser.add_argument('--conf-thres', type=float, default=0.3, help='object confidence threshold')
     parser.add_argument('--nms-thres', type=float, default=0.5, help='iou threshold for non-maximum suppression')
@@ -229,9 +242,8 @@ if __name__ == '__main__':
     with torch.no_grad():
         if opt.test_emb:
             res = test_emb(
-                opt.cfg,
-                opt.data_cfg,
                 opt.weights,
+                opt.img_size,
                 opt.batch_size,
                 opt.iou_thres,
                 opt.conf_thres,

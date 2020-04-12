@@ -106,7 +106,48 @@ class Jde_RCNN(GeneralizedRCNN):
         transform = GeneralizedRCNNTransform(min_size, max_size, image_mean, image_std)
 
         super(Jde_RCNN, self).__init__(backbone, rpn, roi_heads, transform)
+        self.eval_embed = False
 
+    def forward(self, images, targets=None):
+        """
+        Arguments:
+            images (list[Tensor]): images to be processed
+            targets (list[Dict[Tensor]]): ground-truth boxes present in the image (optional)
+
+        Returns:
+            result (list[BoxList] or dict[Tensor]): the output from the model.
+                During training, it returns a dict[Tensor] which contains the losses.
+                During testing, it returns list[BoxList] contains additional fields
+                like `scores`, `labels` and `mask` (for Mask R-CNN models).
+
+        """
+        if self.training and targets is None:
+            raise ValueError("In training mode, targets should be passed")
+        if self.eval_embedding and targets is None:
+            raise ValueError("In eval embedding mode, targets should be passed")
+        original_image_sizes = [img.shape[-2:] for img in images]
+        images, targets = self.transform(images, targets)
+        features = self.backbone(images.tensors)
+        if isinstance(features, torch.Tensor):
+            features = OrderedDict([(0, features)])
+        
+        if self.eval_embed:
+            self.roi_heads.eval_embedding()
+        proposals, proposal_losses = self.rpn(images, features, targets)
+        detections, detector_losses = self.roi_heads(features, proposals, images.image_sizes, targets)
+        detections = self.transform.postprocess(detections, images.image_sizes, original_image_sizes)
+
+        losses = {}
+        losses.update(detector_losses)
+        losses.update(proposal_losses)
+
+        if self.training:
+            return losses
+
+        return detections
+    
+    def eval_embedding(self):
+        self.eval_embed = True
 
 
 
@@ -169,7 +210,7 @@ class JDE_RoIHeads(RoIHeads):
                                           batch_size_per_image, positive_fraction,
                                           bbox_reg_weights,
                                           score_thresh, nms_thresh, detections_per_img)
-                                          
+        self.eval_embed = False
         self.num_ID = num_ID
         self.len_embeddings = len_embeddings
         self.identifier = nn.Linear(len_embeddings, num_ID)
@@ -198,7 +239,11 @@ class JDE_RoIHeads(RoIHeads):
         if self.training:
             proposals, matched_idxs, labels, regression_targets, ids = self.select_training_samples(proposals, targets)
         
-        box_features = self.box_roi_pool(features, proposals, image_shapes)
+        if self.eval_embed:
+            boxes = [t['boxes'] for t in targets]
+            box_features = self.box_roi_pool(features, boxes, image_shapes)
+        else:
+            box_features = self.box_roi_pool(features, proposals, image_shapes)
         box_features = self.box_head(box_features)
         class_logits, box_regression, embeddings = self.box_predictor(box_features)
 
@@ -212,17 +257,30 @@ class JDE_RoIHeads(RoIHeads):
             loss_total *= 0.5
             losses = dict(loss_total=loss_total, loss_classifier=loss_classifier, loss_box_reg=loss_box_reg, loss_reid=loss_reid)
         else:
-            boxes, scores, labels = self.postprocess_detections(class_logits, box_regression, proposals, image_shapes)
-            num_images = len(boxes)
-            for i in range(num_images):
-                result.append(
-                    dict(
-                        boxes=boxes[i],
-                        labels=labels[i],
-                        scores=scores[i],
-                        embeddings=embeddings[i]
+            if not self.eval_embed:
+                boxes, scores, labels = self.postprocess_detections(class_logits, box_regression, proposals, image_shapes)
+                num_images = len(boxes)
+                for i in range(num_images):
+                    result.append(
+                        dict(
+                            boxes=boxes[i],
+                            labels=labels[i],
+                            scores=scores[i],
+                            embeddings=embeddings[i]
+                        )
                     )
-                )
+            else:
+                num_images = len(boxes)
+                for i in range(num_images):
+                    result.append(
+                        dict(
+                            boxes=boxes[i],
+                            labels=targets[i]['ids'],
+                            scores=None,
+                            embeddings=embeddings[i]
+                        )
+                    )
+
 
         return result, losses
         
@@ -314,3 +372,6 @@ class JDE_RoIHeads(RoIHeads):
             labels.append(labels_in_image)
             ids.append(ids_in_image)
         return matched_idxs, labels, ids
+
+    def eval_embedding(self):
+        self.eval_embed = True

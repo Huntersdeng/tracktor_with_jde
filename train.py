@@ -105,7 +105,6 @@ def train(
             targets = []
             imgs = imgs.cuda()
             labels = labels.cuda()
-            loss_iter_log = {}
             for target_len, label in zip(np.squeeze(targets_len), labels):
                 ## convert the input to demanded format
                 target = {}
