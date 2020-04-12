@@ -2,6 +2,7 @@ import argparse
 import json
 import time
 from pathlib import Path
+import numpy as np 
 
 from sklearn import metrics
 from scipy import interpolate
@@ -51,11 +52,12 @@ def test(
     for batch_i, (imgs, targets, paths, shapes, targets_len) in enumerate(dataloader):
         t = time.time()
         out = model(imgs.cuda())
-        output = np.zeros((len(out), 7))
+        output = []
         for i,o in enumerate(out):
-            output[i,:4] = xyxy2xywh(o['boxes'])
-            output[i,4:6] = o['scores']
-            output[i,6] = o['labels']
+            boxes = xyxy2xywh(o['boxes']).cpu()
+            scores = o['scores'].cpu()
+            labels = o['labels'].cpu
+            output.append(np.concatenate((boxes,scores,scores,labels), axis=1))
         output = non_max_suppression(output, conf_thres=conf_thres, nms_thres=nms_thres)
         for i, o in enumerate(output):
             if o is not None:
