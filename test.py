@@ -202,7 +202,8 @@ def test_emb(
     print('Computing pairwise similairity...')
     if len(embedding) <1 :
         return None
-    embedding = torch.cat(embedding, dim=1).cuda()
+    embedding = torch.cat(embedding, dim=0).cuda()
+    # embedding = torch.cat(embedding, dim=0)
     id_labels = torch.LongTensor(id_labels)
     n = len(id_labels)
     print(n, len(embedding))
