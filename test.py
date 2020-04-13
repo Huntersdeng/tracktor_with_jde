@@ -30,7 +30,7 @@ def test(
     backbone.out_channels = 256
     nC = 1
     model = Jde_RCNN(backbone, num_ID=1129)
-    model = torch.nn.DataParallel(model)
+    # model = torch.nn.DataParallel(model)
     checkpoint = torch.load(weights, map_location='cpu')
     # Load weights to resume from
     model.load_state_dict(checkpoint['model'])
