@@ -75,7 +75,7 @@ class Jde_RCNN(GeneralizedRCNN):
         if box_head is None:
             resolution = box_roi_pool.output_size[0]
             representation_size = 1024
-            box_head = TwoMLPHead(
+            box_head = JDE_LPHead(
                 out_channels * resolution ** 2,
                 representation_size)
 
@@ -150,6 +150,34 @@ class Jde_RCNN(GeneralizedRCNN):
         self.eval_embed = True
 
 
+class JDE_LPHead(nn.Module):
+    """
+    Standard heads for FPN-based models
+
+    Arguments:
+        in_channels (int): number of input channels
+        representation_size (int): size of the intermediate representation
+    """
+
+    def __init__(self, in_channels, representation_size):
+        super(JDE_LPHead, self).__init__()
+
+        self.fc6 = nn.Linear(in_channels, representation_size)
+        self.fc7 = nn.Linear(representation_size, representation_size)
+        self.fc8 = nn.Linear(in_channels, representation_size)
+        self.fc9 = nn.Linear(representation_size, representation_size)
+        self.fc10 = nn.Linear(representation_size, representation_size)
+
+    def forward(self, x):
+        x = x.flatten(start_dim=1)
+
+        x1 = F.relu(self.fc6(x))
+        x1 = F.relu(self.fc7(x1))
+        x2 = F.relu(self.fc8(x))
+        x2 = F.relu(self.fc9(x2))
+        x2 = F.relu(self.fc10(x2))
+
+        return x1, x2
 
 class JDEPredictor(nn.Module):
     """
@@ -170,13 +198,13 @@ class JDEPredictor(nn.Module):
         self.extract_embedding = nn.Linear(in_channels, size_embedding)
         self.emb_scale = emb_scale
 
-    def forward(self, x):
+    def forward(self, x, y):
         if x.ndimension() == 4:
             assert list(x.shape[2:]) == [1, 1]
         x = x.flatten(start_dim=1)
         scores = self.cls_score(x)
         bbox_deltas = self.bbox_pred(x)
-        embedding = self.extract_embedding(x)
+        embedding = self.extract_embedding(y)
         embedding = self.emb_scale * F.normalize(embedding)
 
         return scores, bbox_deltas, embedding
@@ -244,8 +272,8 @@ class JDE_RoIHeads(RoIHeads):
             box_features = self.box_roi_pool(features, boxes, image_shapes)
         else:
             box_features = self.box_roi_pool(features, proposals, image_shapes)
-        box_features = self.box_head(box_features)
-        class_logits, box_regression, embeddings = self.box_predictor(box_features)
+        box_features, embed_features = self.box_head(box_features)
+        class_logits, box_regression, embeddings = self.box_predictor(box_features, embed_features)
 
         result, losses = [], {}
         if self.training:
