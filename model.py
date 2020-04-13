@@ -9,13 +9,13 @@ from torchvision.ops import MultiScaleRoIAlign
 from torchvision.models.detection.generalized_rcnn import GeneralizedRCNN
 from torchvision.models.detection.rpn import AnchorGenerator, RPNHead, RegionProposalNetwork
 from torchvision.models.detection.roi_heads import RoIHeads
-from torchvision.models.detection.faster_rcnn import TwoMLPHead
-from torchvision.models.detection.transform import GeneralizedRCNNTransform
+from torchvision.models.detection.faster_rcnn import TwoMLPHead, FastRCNNPredictor
+from torchvision.models.detection.transform import GeneralizedRCNNTransform, resize_boxes 
 
 import math
 
 class Jde_RCNN(GeneralizedRCNN):
-    def __init__(self, backbone, num_ID, num_classes=2, len_embeddings=128,
+    def __init__(self, backbone, num_ID, num_classes=2, 
                  # transform parameters
                  min_size=720, max_size=960,
                  image_mean=None, image_std=None,
@@ -31,7 +31,9 @@ class Jde_RCNN(GeneralizedRCNN):
                  box_score_thresh=0.05, box_nms_thresh=0.5, box_detections_per_img=100,
                  box_fg_iou_thresh=0.5, box_bg_iou_thresh=0.5,
                  box_batch_size_per_image=512, box_positive_fraction=0.25,
-                 bbox_reg_weights=None):
+                 bbox_reg_weights=None,
+                 # Embedding parameters
+                 len_embeddings=128, embed_head=None, embed_extractor=None):
         
         if not hasattr(backbone, "out_channels"):
             raise ValueError(
@@ -79,11 +81,23 @@ class Jde_RCNN(GeneralizedRCNN):
 
         emb_scale = math.sqrt(2) * math.log(num_ID-1) if num_ID>1 else 1
 
+        if embed_head is None:
+            resolution = box_roi_pool.output_size[0]
+            representation_size = 1024
+            embed_head = featureHead(
+                out_channels * resolution ** 2,
+                representation_size)  
+
         if box_predictor is None:
             representation_size = 1024
-            box_predictor = JDEPredictor(
+            box_predictor = FastRCNNPredictor(
                 representation_size,
-                num_classes,
+                num_classes)
+        
+        if embed_extractor is None:
+            representation_size = 1024
+            embed_extractor = featureExtractor(
+                representation_size,
                 len_embeddings,
                 emb_scale
                 )
@@ -95,7 +109,7 @@ class Jde_RCNN(GeneralizedRCNN):
             box_batch_size_per_image, box_positive_fraction,
             bbox_reg_weights,
             box_score_thresh, box_nms_thresh, box_detections_per_img,
-            len_embeddings, num_ID)
+            len_embeddings, num_ID, embed_head, embed_extractor)
 
         if image_mean is None:
             image_mean = [0.485, 0.456, 0.406]
@@ -104,51 +118,101 @@ class Jde_RCNN(GeneralizedRCNN):
         transform = GeneralizedRCNNTransform(min_size, max_size, image_mean, image_std)
 
         super(Jde_RCNN, self).__init__(backbone, rpn, roi_heads, transform)
-        self.eval_embed = False
-
-    def forward(self, images, targets=None):
-        """
-        Arguments:
-            images (list[Tensor]): images to be processed
-            targets (list[Dict[Tensor]]): ground-truth boxes present in the image (optional)
-
-        Returns:
-            result (list[BoxList] or dict[Tensor]): the output from the model.
-                During training, it returns a dict[Tensor] which contains the losses.
-                During testing, it returns list[BoxList] contains additional fields
-                like `scores`, `labels` and `mask` (for Mask R-CNN models).
-
-        """
-        if self.training and targets is None:
-            raise ValueError("In training mode, targets should be passed")
-        if self.eval_embedding and targets is None:
-            raise ValueError("In eval embedding mode, targets should be passed")
-        original_image_sizes = [img.shape[-2:] for img in images]
-        images, targets = self.transform(images, targets)
-        features = self.backbone(images.tensors)
-        if isinstance(features, torch.Tensor):
-            features = OrderedDict([(0, features)])
-        
-        if self.eval_embed:
-            self.roi_heads.eval_embedding()
-        proposals, proposal_losses = self.rpn(images, features, targets)
-        detections, detector_losses = self.roi_heads(features, proposals, images.image_sizes, targets)
-        detections = self.transform.postprocess(detections, images.image_sizes, original_image_sizes)
-
-        losses = {}
-        losses.update(detector_losses)
-        losses.update(proposal_losses)
-
-        if self.training:
-            return losses
-
-        return detections
+        self.original_image_sizes = None
+        self.preprocessed_images = None
+        self.features = None
     
-    def eval_embedding(self):
-        self.eval_embed = True
+
+    def detect(self, img):
+        device = list(self.parameters())[0].device
+        img = img.to(device)
+
+        detections = self(img)
+
+        return detections['boxes'].detach(), detections['scores'].detach()
+
+    def predict_boxes(self, boxes):
+        device = list(self.parameters())[0].device
+        boxes = boxes.to(device)
+
+        boxes = resize_boxes(boxes, self.original_image_sizes[0], self.preprocessed_images.image_sizes[0])
+        proposals = [boxes]
+
+        box_features = self.roi_heads.box_roi_pool(self.features, proposals, self.preprocessed_images.image_sizes)
+        box_features = self.roi_heads.box_head(box_features)
+        class_logits, box_regression = self.roi_heads.box_predictor(box_features)
+
+        pred_boxes = self.roi_heads.box_coder.decode(box_regression, proposals)
+        pred_scores = F.softmax(class_logits, -1)
+
+        # score_thresh = self.roi_heads.score_thresh
+        # nms_thresh = self.roi_heads.nms_thresh
+
+        # self.roi_heads.score_thresh = self.roi_heads.nms_thresh = 1.0
+        # self.roi_heads.score_thresh = 0.0
+        # self.roi_heads.nms_thresh = 1.0
+        # detections, detector_losses = self.roi_heads(
+        #     features, [boxes.squeeze(dim=0)], images.image_sizes, targets)
+
+        # self.roi_heads.score_thresh = score_thresh
+        # self.roi_heads.nms_thresh = nms_thresh
+
+        # detections = self.transform.postprocess(
+        #     detections, images.image_sizes, original_image_sizes)
+
+        # detections = detections[0]
+        # return detections['boxes'].detach().cpu(), detections['scores'].detach().cpu()
+
+        pred_boxes = pred_boxes[:, 1:].squeeze(dim=1).detach()
+        pred_boxes = resize_boxes(pred_boxes, self.preprocessed_images.image_sizes[0], self.original_image_sizes[0])
+        pred_scores = pred_scores[:, 1:].squeeze(dim=1).detach()
+        return pred_boxes, pred_scores
+
+    def get_embedding(self, boxes):
+        features = self.roi_head.box_roi_pool(self.features, boxes, self.preprocessed_images.image_sizes[0])
+        embed_features = self.roi_heads.embed_head(features)
+        embeddings = self.roi_heads.embed_extractor(embed_features)
+        return embeddings
+
+    def load_image(self, images):
+        device = list(self.parameters())[0].device
+        images = images.to(device)
+
+        self.original_image_sizes = [img.shape[-2:] for img in images]
+
+        preprocessed_images, _ = self.transform(images, None)
+        self.preprocessed_images = preprocessed_images
+
+        self.features = self.backbone(preprocessed_images.tensors)
+        if isinstance(self.features, torch.Tensor):
+            self.features = OrderedDict([(0, self.features)])
 
 
-class JDEPredictor(nn.Module):
+class featureHead(nn.Module):
+    """
+    Standard heads for FPN-based models
+
+    Arguments:
+        in_channels (int): number of input channels
+        representation_size (int): size of the intermediate representation
+    """
+
+    def __init__(self, in_channels, representation_size):
+        super(featureHead, self).__init__()
+
+        self.fc8 = nn.Linear(in_channels, representation_size)
+        self.fc9 = nn.Linear(representation_size, representation_size)
+        self.fc10 = nn.Linear(representation_size, representation_size)
+
+    def forward(self, x):
+        x = x.flatten(start_dim=1)
+        x = F.relu(self.fc8(x))
+        x = F.relu(self.fc9(x))
+        x = F.relu(self.fc10(x))
+
+        return x
+
+class featureExtractor(nn.Module):
     """
     Standard classification + bounding box regression + enbedding extracting layers
     for our model
@@ -160,10 +224,8 @@ class JDEPredictor(nn.Module):
         emb_scale      (int): the scale of embedding
     """
 
-    def __init__(self, in_channels, num_classes, size_embedding, emb_scale):
-        super(JDEPredictor, self).__init__()
-        self.cls_score = nn.Linear(in_channels, num_classes)
-        self.bbox_pred = nn.Linear(in_channels, num_classes * 4)
+    def __init__(self, in_channels, size_embedding, emb_scale):
+        super(featureExtractor, self).__init__()
         self.extract_embedding = nn.Linear(in_channels, size_embedding)
         self.emb_scale = emb_scale
 
@@ -171,12 +233,10 @@ class JDEPredictor(nn.Module):
         if x.ndimension() == 4:
             assert list(x.shape[2:]) == [1, 1]
         x = x.flatten(start_dim=1)
-        scores = self.cls_score(x)
-        bbox_deltas = self.bbox_pred(x)
         embedding = self.extract_embedding(x)
         embedding = self.emb_scale * F.normalize(embedding)
 
-        return scores, bbox_deltas, embedding
+        return embedding
 
 class JDE_RoIHeads(RoIHeads):
     def __init__(self,
@@ -192,7 +252,7 @@ class JDE_RoIHeads(RoIHeads):
                 nms_thresh,
                 detections_per_img,
                 # ReID parameters
-                len_embeddings, num_ID,
+                len_embeddings, num_ID, embed_head, embed_extractor,
                 # Mask
                 mask_roi_pool=None,
                 mask_head=None,
@@ -207,7 +267,8 @@ class JDE_RoIHeads(RoIHeads):
                                           batch_size_per_image, positive_fraction,
                                           bbox_reg_weights,
                                           score_thresh, nms_thresh, detections_per_img)
-        self.eval_embed = False
+        self.embed_head = embed_head
+        self.embed_extractor = embed_extractor
         self.num_ID = num_ID
         self.len_embeddings = len_embeddings
         self.identifier = nn.Linear(len_embeddings, num_ID)
@@ -236,13 +297,14 @@ class JDE_RoIHeads(RoIHeads):
         if self.training:
             proposals, matched_idxs, labels, regression_targets, ids = self.select_training_samples(proposals, targets)
         
-        if self.eval_embed:
-            boxes = [t['boxes'] for t in targets]
-            box_features = self.box_roi_pool(features, boxes, image_shapes)
-        else:
-            box_features = self.box_roi_pool(features, proposals, image_shapes)
-        box_features = self.box_head(box_features)
-        class_logits, box_regression, embeddings = self.box_predictor(box_features)
+        features = self.box_roi_pool(features, proposals, image_shapes)
+        box_features = self.box_head(features)
+        class_logits, box_regression= self.box_predictor(box_features)
+
+
+        if self.training:
+            embed_features = self.embed_head(features)
+            embeddings = self.embed_extractor(embed_features)
 
         result, losses = [], {}
         if self.training:
@@ -254,38 +316,19 @@ class JDE_RoIHeads(RoIHeads):
             loss_total *= 0.5
             losses = dict(loss_total=loss_total, loss_classifier=loss_classifier, loss_box_reg=loss_box_reg, loss_reid=loss_reid)
         else:
-            if not self.eval_embed:
-                boxes, scores, labels = self.postprocess_detections(class_logits, box_regression, proposals, image_shapes)
-                num_images = len(boxes)
-                targets_len = [len(box) for box in boxes]
-                for i in range(num_images):
-                    start = 0
-                    result.append(
-                        dict(
-                            boxes=boxes[i],
-                            labels=labels[i],
-                            scores=scores[i],
-                            embeddings=embeddings[start:start+targets_len[i]]
-                        )
+            boxes, scores, labels = self.postprocess_detections(class_logits, box_regression, proposals, image_shapes)
+            num_images = len(boxes)
+            for i in range(num_images):
+                result.append(
+                    dict(
+                        boxes=boxes[i],
+                        labels=labels[i],
+                        scores=scores[i]
                     )
-                    start += targets_len[i]
-            else:
-                num_images = len(boxes)
-                targets_len = [len(box) for box in boxes]
-                for i in range(num_images):
-                    start = 0
-                    result.append(
-                        dict(
-                            boxes=boxes[i],
-                            labels=targets[i]['ids'],
-                            scores=None,
-                            embeddings=embeddings[start:start+targets_len[i]]
-                        )
-                    )
-                    start += targets_len[i]
-
+                )
 
         return result, losses
+
         
     
     def JDE_loss(self, class_logits, box_regression, embeddings, labels, regression_targets, ids):
@@ -375,6 +418,3 @@ class JDE_RoIHeads(RoIHeads):
             labels.append(labels_in_image)
             ids.append(ids_in_image)
         return matched_idxs, labels, ids
-
-    def eval_embedding(self):
-        self.eval_embed = True

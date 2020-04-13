@@ -97,7 +97,7 @@ def train(
 
     for epoch in range(epochs):
         epoch += start_epoch
-        if epoch>=train_rpn_stage:
+        if not train_rpn_stage:
             for i, (name, p) in enumerate(model.backbone.named_parameters()):
                 p.requires_grad = False
         loss_epoch_log = dict(loss_total=0, loss_classifier=0, loss_box_reg=0, loss_reid=0, loss_objectness=0, loss_rpn_box_reg=0)
@@ -116,7 +116,7 @@ def train(
             losses = model(imgs, targets)
 
             ## two stages training
-            if epoch < train_rpn_stage:
+            if train_rpn_stage:
                 loss = losses['loss_objectness'] + losses['loss_rpn_box_reg']
                 loss.backward()
                 if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
@@ -170,7 +170,7 @@ if __name__ == '__main__':
                                 'with timestamp in the given path')
     parser.add_argument('--save-model-after', type=int, default=5,
                         help='Save a checkpoint of model at given interval of epochs')
-    parser.add_argument('--train-rpn-stage', type=int, default=10, help='for training rpn')
+    parser.add_argument('--train-rpn-stage', action='store_true', help='for training rpn')
     parser.add_argument('--img-size', type=int, default=(960,720), nargs='+', help='pixels')
     parser.add_argument('--resume', action='store_true', help='resume training flag')
     parser.add_argument('--lr', type=float, default=5e-4, help='init lr')
