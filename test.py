@@ -157,7 +157,7 @@ def test_emb(
     model = Jde_RCNN(backbone, num_ID=1129)
     # model.eval_embedding()
     model.cuda().eval_embedding()
-    model = torch.nn.DataParallel(model)
+    # model = torch.nn.DataParallel(model)
     checkpoint = torch.load(weights, map_location='cpu')
     # Load weights to resume from
     model.load_state_dict(checkpoint['model'])
