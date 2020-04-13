@@ -198,7 +198,8 @@ def test_emb(
 
         if batch_i % print_interval==0:
             print('Extracting {}/{}, # of instances {}, time {:.2f} sec.'.format(batch_i, len(dataloader), len(id_labels), time.time() - t))
-
+        if batch_i*batch_size>1000:
+            break
     print('Computing pairwise similairity...')
     if len(embedding) <1 :
         return None
