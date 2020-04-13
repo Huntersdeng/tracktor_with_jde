@@ -69,7 +69,7 @@ def train(
         model.cuda().train()
 
         # Set optimizer
-        optimizer_rpn = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr/5)
+        optimizer_rpn = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
         optimizer_roi = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
 
         start_epoch = checkpoint['epoch'] + 1
@@ -86,7 +86,7 @@ def train(
         model.cuda().train()
 
         # Set optimizer
-        optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr/5,
+        optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr,
                                     weight_decay=5e-4)
         optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr,
                                     weight_decay=5e-4)
@@ -97,6 +97,9 @@ def train(
 
     for epoch in range(epochs):
         epoch += start_epoch
+        if epoch>=train_rpn_stage:
+            for i, (name, p) in enumerate(model.backbone.named_parameters()):
+                p.requires_grad = False
         loss_epoch_log = dict(loss_total=0, loss_classifier=0, loss_box_reg=0, loss_reid=0, loss_objectness=0, loss_rpn_box_reg=0)
         for i, (imgs, labels, imgs_path, _, targets_len) in enumerate(dataloader):
             targets = []
@@ -120,8 +123,8 @@ def train(
                     optimizer_rpn.step()
                     optimizer_rpn.zero_grad()
             else:
-                loss = (losses['loss_objectness'] + losses['loss_rpn_box_reg'])*0.2
-                loss.backward(retain_graph=True)
+                # loss = (losses['loss_objectness'] + losses['loss_rpn_box_reg'])*0.2
+                # loss.backward(retain_graph=True)
                 losses['loss_total'].backward()
                 if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
                     optimizer_roi.step()
