@@ -163,9 +163,9 @@ def test_emb(
     model.load_state_dict(checkpoint['model'])
 
     # Get dataloader
-    # root = '/data/dgw'
-    root = '/home/hunter/Document/torch'
-    paths = {'M16':'./data/MOT16_train_.txt'}
+    root = '/data/dgw'
+    #root = '/home/hunter/Document/torch'
+    paths = {'M16':'./data/MOT16_train.txt'}
     transforms = T.Compose([T.ToTensor()])
     valset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
 
@@ -209,7 +209,7 @@ def test_emb(
     print(n, len(embedding))
     assert len(embedding) == n
     print(embedding.size())
-    embedding = F.normalize(embedding, dim=1)
+    embedding = F.normalize(embedding, dim=0)
     pdist = torch.mm(embedding, embedding.t()).cpu().numpy()
     gt = id_labels.expand(n,n).eq(id_labels.expand(n,n).t()).numpy()
     
