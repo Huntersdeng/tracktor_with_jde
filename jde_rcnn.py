@@ -121,7 +121,7 @@ class Jde_RCNN(GeneralizedRCNN):
         """
         if self.training and targets is None:
             raise ValueError("In training mode, targets should be passed")
-        if self.eval_embedding and targets is None:
+        if self.eval_embed and targets is None:
             raise ValueError("In eval embedding mode, targets should be passed")
         original_image_sizes = [img.shape[-2:] for img in images]
         images, targets = self.transform(images, targets)
