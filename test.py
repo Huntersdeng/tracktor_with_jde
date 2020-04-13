@@ -155,8 +155,8 @@ def test_emb(
     backbone.out_channels = 256
     nC = 1
     model = Jde_RCNN(backbone, num_ID=1129)
-    model.eval_embedding()
-    # model.cuda().eval_embedding()
+    # model.eval_embedding()
+    model.cuda().eval_embedding()
     model = torch.nn.DataParallel(model)
     checkpoint = torch.load(weights, map_location='cpu')
     # Load weights to resume from
@@ -172,16 +172,16 @@ def test_emb(
     dataloader = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=True,
                                                 num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate_fn)
 
-    # model.cuda().eval()
-    model.eval()
+    model.cuda().eval()
+    # model.eval()
 
     embedding, id_labels = [], []
     print('Extracting pedestrain features...')
     for batch_i, (imgs, labels, paths, shapes, targets_len) in enumerate(dataloader):
         t = time.time()
         targets = []
-        # imgs = imgs.cuda()
-        # labels = labels.cuda()
+        imgs = imgs.cuda()
+        labels = labels.cuda()
         for target_len, label in zip(np.squeeze(targets_len), labels):
             ## convert the input to demanded format
             target = {}
@@ -202,12 +202,12 @@ def test_emb(
     print('Computing pairwise similairity...')
     if len(embedding) <1 :
         return None
-    embedding = torch.stack(embedding, dim=0).cuda()
+    embedding = torch.cat(embedding, dim=1).cuda()
     id_labels = torch.LongTensor(id_labels)
     n = len(id_labels)
     print(n, len(embedding))
     assert len(embedding) == n
-
+    print(embedding.size())
     embedding = F.normalize(embedding, dim=1)
     pdist = torch.mm(embedding, embedding.t()).cpu().numpy()
     gt = id_labels.expand(n,n).eq(id_labels.expand(n,n).t()).numpy()
@@ -238,28 +238,28 @@ if __name__ == '__main__':
     parser.add_argument('--backbone-name', type=str, default='resnet101', help='backbone name')
     opt = parser.parse_args()
     print(opt, end='\n\n')
-    os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
     with torch.no_grad():
-        # if opt.test_emb:
-        res = test_emb(
-            opt.weights,
-            opt.img_size,
-            opt.batch_size,
-            opt.iou_thres,
-            opt.conf_thres,
-            opt.nms_thres,
-            opt.print_interval,
-            opt
-        )
-        # else:
-        #     mAP = test(
-        #         opt.weights,
-        #         opt.img_size,
-        #         opt.batch_size,
-        #         opt.iou_thres,
-        #         opt.conf_thres,
-        #         opt.nms_thres,
-        #         opt.print_interval,
-        #         opt
-        #     )
+        if opt.test_emb:
+            res = test_emb(
+                opt.weights,
+                opt.img_size,
+                opt.batch_size,
+                opt.iou_thres,
+                opt.conf_thres,
+                opt.nms_thres,
+                opt.print_interval,
+                opt
+            )
+        else:
+            mAP = test(
+                opt.weights,
+                opt.img_size,
+                opt.batch_size,
+                opt.iou_thres,
+                opt.conf_thres,
+                opt.nms_thres,
+                opt.print_interval,
+                opt
+            )
 

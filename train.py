@@ -69,8 +69,8 @@ def train(
         model.cuda().train()
 
         # Set optimizer
-        optimizer_rpn = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr/5, momentum=.9)
-        optimizer_roi = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
+        optimizer_rpn = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr/5)
+        optimizer_roi = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
 
         start_epoch = checkpoint['epoch'] + 1
         if checkpoint['optimizer_rpn'] is not None:
@@ -86,9 +86,9 @@ def train(
         model.cuda().train()
 
         # Set optimizer
-        optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr/5, momentum=.9,
+        optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr/5,
                                     weight_decay=5e-4)
-        optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9,
+        optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr,
                                     weight_decay=5e-4)
 
         loss_log = []
@@ -98,7 +98,7 @@ def train(
     for epoch in range(epochs):
         epoch += start_epoch
         if epoch<train_rpn_stage:
-            for i, (name, p) in enumerate(model.module.backbone.named_parameters()):
+            for i, (name, p) in enumerate(model.backbone.named_parameters()):
                 p.requires_grad = False
         loss_epoch_log = dict(loss_total=0, loss_classifier=0, loss_box_reg=0, loss_reid=0, loss_objectness=0, loss_rpn_box_reg=0)
         for i, (imgs, labels, imgs_path, _, targets_len) in enumerate(dataloader):
