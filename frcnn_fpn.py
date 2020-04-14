@@ -29,20 +29,18 @@ class FRCNN_FPN(FasterRCNN):
                 output_size=7,
                 sampling_ratio=2)
 
-        if embed_head is None:
-            resolution = box_roi_pool.output_size[0]
-            representation_size = 1024
-            embed_head = featureHead(
-                out_channels * resolution ** 2,
-                representation_size)  
+        resolution = box_roi_pool.output_size[0]
+        representation_size = 1024
+        embed_head = featureHead(
+            out_channels * resolution ** 2,
+            representation_size)  
         
-        if embed_extractor is None:
-            representation_size = 1024
-            embed_extractor = featureExtractor(
-                representation_size,
-                len_embeddings,
-                emb_scale
-                )
+        representation_size = 1024
+        embed_extractor = featureExtractor(
+            representation_size,
+            len_embeddings,
+            emb_scale
+            )
 
         roi_heads = JDE_RoIHeads(
             # Box
