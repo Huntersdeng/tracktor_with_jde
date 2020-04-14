@@ -7,7 +7,7 @@ import numpy as np
 from sklearn import metrics
 from scipy import interpolate
 import torch.nn.functional as F
-from model import Jde_RCNN
+from jde_rcnn import Jde_RCNN
 from utils.utils import *
 from torchvision.transforms import transforms as T
 from utils.datasets import LoadImagesAndLabels, JointDataset, collate_fn
@@ -154,20 +154,21 @@ def test_emb(
             opt=None
 ):
 
+    # Initialize model
     backbone = resnet_fpn_backbone(opt.backbone_name, True)
     backbone.out_channels = 256
     nC = 1
+    # model = FRCNN_FPN(num_classes=2)
+
     model = Jde_RCNN(backbone, num_ID=1129)
-    # model.eval_embedding()
-    model.cuda().eval_embedding()
     # model = torch.nn.DataParallel(model)
-    checkpoint = torch.load(weights, map_location='cpu')
+    checkpoint = torch.load(weights, map_location='cpu')['model']
     # Load weights to resume from
-    model.load_state_dict(checkpoint['model'])
+    print(model.load_state_dict(checkpoint, strict=False))
 
     # Get dataloader
-    root = '/data/dgw'
-    #root = '/home/hunter/Document/torch'
+    # root = '/data/dgw'
+    root = '/home/hunter/Document/torch'
     paths = {'M16':'./data/MOT16_train.txt'}
     transforms = T.Compose([T.ToTensor()])
     valset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
@@ -182,22 +183,17 @@ def test_emb(
     print('Extracting pedestrain features...')
     for batch_i, (imgs, labels, paths, shapes, targets_len) in enumerate(dataloader):
         t = time.time()
-        targets = []
         imgs = imgs.cuda()
         labels = labels.cuda()
+        ids = []
         for target_len, label in zip(np.squeeze(targets_len), labels):
-            ## convert the input to demanded format
-            target = {}
-            target['boxes'] = label[0:int(target_len), 2:6]
-            target['ids'] = (label[0:int(target_len), 1]).long()
-            target['labels'] = torch.ones_like(target['ids'])
-            targets.append(target)
-        output = model(imgs, targets)
-        for out in output:
-            for feat, label in zip(out['embeddings'], out['labels']):
-                if label != -1:
-                    embedding.append(feat.view(1,-1))
-                    id_labels.append(label)
+            ids += list(label[0:int(target_len), 1])
+        model.load_image(imgs)
+        output = model.get_embedding([label[0:int(target_len), 2:6] for label in labels])
+        for out, id_label in zip(output, ids):
+            if id_label != -1:
+                embedding.append(out.view(1,-1))
+                id_labels.append(id_label)
 
         if batch_i % print_interval==0:
             print('Extracting {}/{}, # of instances {}, time {:.2f} sec.'.format(batch_i, len(dataloader), len(id_labels), time.time() - t))
