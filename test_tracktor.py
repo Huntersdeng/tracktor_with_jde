@@ -14,12 +14,13 @@ import yaml
 from tqdm import tqdm
 import sacred
 from sacred import Experiment
-from model import Jde_RCNN
-# from tracktor.config import get_output_dir
-# from tracktor.datasets.factory import Datasets
-# from tracktor.oracle_tracker import OracleTracker
-from tracker import Tracker
-from utils.utils import interpolate, plot_sequence, get_mot_accum, evaluate_mot_accums
+from tracktor.frcnn_fpn import FRCNN_FPN
+from tracktor.config import get_output_dir
+from tracktor.datasets.factory import Datasets
+from tracktor.oracle_tracker import OracleTracker
+from tracktor.tracker import Tracker
+from tracktor.reid.resnet import resnet50
+from tracktor.utils import interpolate, plot_sequence, get_mot_accum, evaluate_mot_accums
 
 ex = Experiment()
 

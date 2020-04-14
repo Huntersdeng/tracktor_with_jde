@@ -2,6 +2,7 @@ import glob
 import random
 import os
 import os.path as osp
+import csv
 
 import cv2
 import matplotlib.pyplot as plt
@@ -967,4 +968,47 @@ def evaluate_mot_accums(accums, names, generate_overall=False):
         formatters=mh.formatters, 
         namemap=mm.io.motchallenge_metric_names,)
     print(str_summary)
+
+def write_results(seq_name, all_tracks, output_dir):
+    """Write the tracks in the format for MOT16/MOT17 sumbission
+
+    all_tracks: dictionary with 1 dictionary for every track with {..., i:np.array([x1,y1,x2,y2]), ...} at key track_num
+
+    Each file contains these lines:
+    <frame>, <id>, <bb_left>, <bb_top>, <bb_width>, <bb_height>, <conf>, <x>, <y>, <z>
+
+    Files to sumbit:
+    ./MOT16-01.txt
+    ./MOT16-02.txt
+    ./MOT16-03.txt
+    ./MOT16-04.txt
+    ./MOT16-05.txt
+    ./MOT16-06.txt
+    ./MOT16-07.txt
+    ./MOT16-08.txt
+    ./MOT16-09.txt
+    ./MOT16-10.txt
+    ./MOT16-11.txt
+    ./MOT16-12.txt
+    ./MOT16-13.txt
+    ./MOT16-14.txt
+    """
+
+    #format_str = "{}, -1, {}, {}, {}, {}, {}, -1, -1, -1"
+
+
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    file = osp.join(output_dir, seq_name+'.txt')
+
+    with open(file, "w") as of:
+        writer = csv.writer(of, delimiter=',')
+        for i, track in all_tracks.items():
+            for frame, bb in track.items():
+                x1 = bb[0]
+                y1 = bb[1]
+                x2 = bb[2]
+                y2 = bb[3]
+                writer.writerow([frame+1, i+1, x1+1, y1+1, x2-x1+1, y2-y1+1, -1, -1, -1, -1])
 
