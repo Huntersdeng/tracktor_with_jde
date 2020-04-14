@@ -6,9 +6,10 @@ import numpy as np
 
 from sklearn import metrics
 from scipy import interpolate
+import torch
 import torch.nn.functional as F
 from jde_rcnn import Jde_RCNN
-from utils.utils import *
+from utils.utils import xyxy2xywh, non_max_suppression, ap_per_class
 from torchvision.transforms import transforms as T
 from utils.datasets import LoadImagesAndLabels, JointDataset, collate_fn
 from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
