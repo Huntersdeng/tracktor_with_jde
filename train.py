@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 warnings.filterwarnings('ignore')
-os.environ['CUDA_VISIBLE_DEVICES']='0'
+os.environ['CUDA_VISIBLE_DEVICES']='1'
 
 def train(
         weights_from,
@@ -69,8 +69,8 @@ def train(
         model.cuda().train()
 
         # Set optimizer
-        optimizer_rpn = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
-        optimizer_roi = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
+        optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
+        optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
 
         start_epoch = checkpoint['epoch'] + 1
         if checkpoint['optimizer_rpn'] is not None:
@@ -165,7 +165,7 @@ if __name__ == '__main__':
     parser.add_argument('--weights-from', type=str, default='../v2/weights/',
                         help='Path for getting the trained model for resuming training (Should only be used with '
                                 '--resume)')
-    parser.add_argument('--weights-to', type=str, default='../v2/weights/',
+    parser.add_argument('--weights-to', type=str, default='../weights/',
                         help='Store the trained weights after resuming training session. It will create a new folder '
                                 'with timestamp in the given path')
     parser.add_argument('--save-model-after', type=int, default=5,
