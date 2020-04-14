@@ -8,7 +8,6 @@ from sklearn import metrics
 from scipy import interpolate
 import torch.nn.functional as F
 from model import Jde_RCNN
-from frcnn_fpn import FRCNN_FPN
 from utils.utils import *
 from torchvision.transforms import transforms as T
 from utils.datasets import LoadImagesAndLabels, JointDataset, collate_fn
@@ -36,13 +35,7 @@ def test(
     # model = torch.nn.DataParallel(model)
     checkpoint = torch.load(weights, map_location='cpu')['model']
     # Load weights to resume from
-    layer = {}
-    for model_layer in model.state_dict().keys():
-        for weights_layer, weights in checkpoint.items():
-            if model_layer==weights_layer.lstrip('module.'):
-                layer[model_layer] = weights
-                break
-    print(model.load_state_dict(layer, strict=False))
+    print(model.load_state_dict(checkpoint, strict=False))
     # model.load_state_dict(checkpoint)
     model.cuda().eval()
     # model.eval()
