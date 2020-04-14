@@ -190,7 +190,7 @@ class Jde_RCNN(GeneralizedRCNN):
 
 class featureHead(nn.Module):
     """
-    Standard heads for FPN-based models
+    heads for getting embeddings
 
     Arguments:
         in_channels (int): number of input channels
@@ -214,12 +214,10 @@ class featureHead(nn.Module):
 
 class featureExtractor(nn.Module):
     """
-    Standard classification + bounding box regression + enbedding extracting layers
-    for our model
+    enbedding extracting layers for our model
 
     Arguments:
         in_channels    (int): number of input channels
-        num_classes    (int): number of output classes (including background)
         size_embedding (int): number of the embeddings' dimension
         emb_scale      (int): the scale of embedding
     """

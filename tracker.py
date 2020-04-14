@@ -7,7 +7,7 @@ from torch.autograd import Variable
 from scipy.optimize import linear_sum_assignment
 import cv2
 
-from .utils import bbox_overlaps, warp_pos, get_center, get_height, get_width, make_pos
+from utils.utils import bbox_overlaps, warp_pos, get_center, get_height, get_width, make_pos
 
 from torchvision.ops.boxes import clip_boxes_to_image, nms
 
@@ -17,9 +17,8 @@ class Tracker:
 	# only track pedestrian
 	cl = 1
 
-	def __init__(self, obj_detect, reid_network, tracker_cfg):
+	def __init__(self, obj_detect, tracker_cfg):
 		self.obj_detect = obj_detect
-		self.reid_network = reid_network
 		self.detection_person_thresh = tracker_cfg['detection_person_thresh']
 		self.regression_person_thresh = tracker_cfg['regression_person_thresh']
 		self.detection_nms_thresh = tracker_cfg['detection_nms_thresh']
@@ -33,9 +32,9 @@ class Tracker:
 		self.do_align = tracker_cfg['do_align']
 		self.motion_model_cfg = tracker_cfg['motion_model']
 
-		self.warp_mode = eval(tracker_cfg['warp_mode'])
-		self.number_of_iterations = tracker_cfg['number_of_iterations']
-		self.termination_eps = tracker_cfg['termination_eps']
+		# self.warp_mode = eval(tracker_cfg['warp_mode'])
+		# self.number_of_iterations = tracker_cfg['number_of_iterations']
+		# self.termination_eps = tracker_cfg['termination_eps']
 
 		self.tracks = []
 		self.inactive_tracks = []
@@ -129,8 +128,7 @@ class Tracker:
 		new_det_features = [torch.zeros(0).cuda() for _ in range(len(new_det_pos))]
 		
 		if self.do_reid:
-			new_det_features = self.reid_network.test_rois(
-				blob['img'], new_det_pos).data
+			new_det_features = self.obj_detect.get_embedding(new_det_pos)
 
 			if len(self.inactive_tracks) >= 1:
 				# calculate appearance distances
@@ -185,7 +183,7 @@ class Tracker:
 
 	def get_appearances(self, blob):
 		"""Uses the siamese CNN to get the features for all active tracks."""
-		new_features = self.reid_network.test_rois(blob['img'], self.get_pos()).data
+		new_features = self.obj_detect.get_embedding(self.get_pos())
 		return new_features
 
 	def add_features(self, new_features):

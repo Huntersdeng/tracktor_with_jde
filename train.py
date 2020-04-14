@@ -21,8 +21,7 @@ warnings.filterwarnings('ignore')
 os.environ['CUDA_VISIBLE_DEVICES']='1'
 
 def train(
-        weights_from,
-        weights_to,
+        save_path,
         save_every,
         train_rpn_stage,
         img_size=(640,480),
@@ -35,11 +34,11 @@ def train(
 ):
 
     model_name = opt.backbone_name + '_img_size' + str(img_size[0]) + '_' + str(img_size[1]) 
-    weights_to = osp.join(weights_to, model_name)
-    loss_log_path = './log/loss_' + model_name + '.json'
-    mkdir_if_missing(weights_to)
+    weights_path = osp.join(save_path, model_name)
+    loss_log_path = osp.join(weights_path, 'loss.json')
+    mkdir_if_missing(weights_path)
     if resume:
-        latest_resume = osp.join(weights_from, 'latest.pt')
+        latest_resume = osp.join(weights_path, 'latest.pt')
 
     torch.backends.cudnn.benchmark = True
     # root = '/home/hunter/Document/torch'
@@ -79,9 +78,8 @@ def train(
             optimizer_roi.load_state_dict(checkpoint['optimizer_roi'])            
 
         del checkpoint  # current, saved
-        #with open(loss_log_path, 'r') as file:
-        #   loss_log = json.load(file)
-        loss_log = []
+        with open(loss_log_path, 'r') as file:
+          loss_log = json.load(file)
     else:
         model.cuda().train()
 
@@ -147,12 +145,12 @@ def train(
                       'optimizer_rpn': optimizer_rpn.state_dict(),
                       'optimizer_roi': optimizer_roi.state_dict()}
 
-        latest = osp.join(weights_to, 'latest.pt')
+        latest = osp.join(weights_path, 'latest.pt')
         torch.save(checkpoint, latest)
         if epoch % save_every == 0 and epoch != 0:
             # making the checkpoint lite
             checkpoint["optimizer"] = []
-            torch.save(checkpoint, osp.join(weights_to, "weights_epoch_" + str(epoch) + ".pt"))
+            torch.save(checkpoint, osp.join(weights_path, "weights_epoch_" + str(epoch) + ".pt"))
     with open(loss_log_path, 'w+') as f:
         json.dump(loss_log, f) 
 
@@ -162,12 +160,9 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=30, help='number of epochs')
     parser.add_argument('--batch-size', type=int, default=8, help='size of each image batch')
     parser.add_argument('--accumulated-batches', type=int, default=1, help='number of batches before optimizer step')
-    parser.add_argument('--weights-from', type=str, default='../v2/weights/',
+    parser.add_argument('--save_path', type=str, default='../',
                         help='Path for getting the trained model for resuming training (Should only be used with '
                                 '--resume)')
-    parser.add_argument('--weights-to', type=str, default='../weights/',
-                        help='Store the trained weights after resuming training session. It will create a new folder '
-                                'with timestamp in the given path')
     parser.add_argument('--save-model-after', type=int, default=5,
                         help='Save a checkpoint of model at given interval of epochs')
     parser.add_argument('--train-rpn-stage', action='store_true', help='for training rpn')
@@ -180,8 +175,7 @@ if __name__ == '__main__':
     init_seeds()
 
     train(
-        weights_from=opt.weights_from,
-        weights_to=opt.weights_to,
+        save_path=opt.save_path,
         save_every=opt.save_model_after,
         train_rpn_stage=opt.train_rpn_stage,
         img_size=opt.img_size,
