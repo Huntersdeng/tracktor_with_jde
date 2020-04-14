@@ -12,6 +12,7 @@ from torchvision.models.detection.transform import resize_boxes
 from torchvision.models.detection.roi_heads import RoIHeads
 
 from model import featureExtractor, featureHead
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, TwoMLPHead
 
 
 
@@ -29,13 +30,22 @@ class FRCNN_FPN(FasterRCNN):
                 output_size=7,
                 sampling_ratio=2)
 
-        resolution = box_roi_pool.output_size[0]
         representation_size = 1024
+
+        resolution = box_roi_pool.output_size[0]
+        box_head = TwoMLPHead(
+            out_channels * resolution ** 2,
+            representation_size)
+
+        box_predictor = FastRCNNPredictor(
+            representation_size,
+            num_classes)
+
+        resolution = box_roi_pool.output_size[0]
         embed_head = featureHead(
             out_channels * resolution ** 2,
             representation_size)  
         
-        representation_size = 1024
         embed_extractor = featureExtractor(
             representation_size,
             len_embeddings,
@@ -44,7 +54,7 @@ class FRCNN_FPN(FasterRCNN):
 
         roi_heads = JDE_RoIHeads(
             # Box
-            box_roi_pool, self.box_head, self.box_predictor,
+            box_roi_pool, box_head, box_predictor,
             len_embeddings, num_ID, embed_head, embed_extractor)
         self.roi_heads = roi_heads
         self.original_image_sizes = None
@@ -95,6 +105,12 @@ class FRCNN_FPN(FasterRCNN):
         pred_boxes = resize_boxes(pred_boxes, self.preprocessed_images.image_sizes[0], self.original_image_sizes[0])
         pred_scores = pred_scores[:, 1:].squeeze(dim=1).detach()
         return pred_boxes, pred_scores
+
+    def get_embedding(self, boxes):
+        features = self.roi_head.box_roi_pool(self.features, boxes, self.preprocessed_images.image_sizes[0])
+        embed_features = self.roi_heads.embed_head(features)
+        embeddings = self.roi_heads.embed_extractor(embed_features)
+        return embeddings
 
     def load_image(self, images):
         device = list(self.parameters())[0].device
