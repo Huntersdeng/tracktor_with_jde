@@ -8,6 +8,7 @@ from sklearn import metrics
 from scipy import interpolate
 import torch.nn.functional as F
 from model import Jde_RCNN
+from frcnn_fpn import FRCNN_FPN
 from utils.utils import *
 from torchvision.transforms import transforms as T
 from utils.datasets import LoadImagesAndLabels, JointDataset, collate_fn
@@ -26,10 +27,10 @@ def test(
     
 
     # Initialize model
-    backbone = resnet_fpn_backbone(opt.backbone_name, True)
-    backbone.out_channels = 256
+    # backbone = resnet_fpn_backbone(opt.backbone_name, True)
+    # backbone.out_channels = 256
     nC = 1
-    model = Jde_RCNN(backbone, num_ID=1129)
+    model = FRCNN_FPN(num_ID=1129)
     # model = torch.nn.DataParallel(model)
     checkpoint = torch.load(weights, map_location='cpu')
     # Load weights to resume from
