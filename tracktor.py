@@ -15,7 +15,7 @@ import torchvision
 from torchvision.transforms import transforms as T
 from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
 
-from model import Jde_RCNN
+from jde_rcnn import Jde_RCNN
 from tracker import Tracker
 from utils.utils import interpolate, plot_sequence, get_mot_accum, evaluate_mot_accums, write_results
 from utils.datasets import LoadImagesAndLabels
@@ -56,7 +56,7 @@ for seq_path in os.listdir(tracktor['dataset']):
 
     start = time.time()
 
-    print(f"Tracking: {seq}")
+    print(f"Tracking: {seq_path}")
     sequence = LoadImagesAndLabels(root, osp.join(tracktor['dataset'], seq_path), img_size, augment=False, transforms=transforms)
     data_loader = DataLoader(sequence, batch_size=1, shuffle=False)
     seq = []
@@ -70,7 +70,7 @@ for seq_path in os.listdir(tracktor['dataset']):
     time_total += time.time() - start
 
     print(f"Tracks found: {len(results)}")
-    print(f"Runtime for {seq}: {time.time() - start :.1f} s.")
+    print(f"Runtime for {seq_path}: {time.time() - start :.1f} s.")
 
     if tracktor['interpolate']:
         results = interpolate(results)
