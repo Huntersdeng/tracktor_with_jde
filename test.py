@@ -27,19 +27,22 @@ def test(
     
 
     # Initialize model
-    # backbone = resnet_fpn_backbone(opt.backbone_name, True)
-    # backbone.out_channels = 256
+    backbone = resnet_fpn_backbone(opt.backbone_name, True)
+    backbone.out_channels = 256
     nC = 1
-    model = FRCNN_FPN(num_classes=2)
+    # model = FRCNN_FPN(num_classes=2)
+
+    model = Jde_RCNN(backbone, num_ID=1129)
     # model = torch.nn.DataParallel(model)
     checkpoint = torch.load(weights, map_location='cpu')['model']
     # Load weights to resume from
+    layer = {}
     for model_layer in model.state_dict().keys():
         for weights_layer, weights in checkpoint.items():
-            if model_layer==weights_layer:
-                model.state_dict()[model_layer] = weights
+            if model_layer==weights_layer.lstrip('module.'):
+                layer[model_layer] = weights
                 break
-    # model.load_state_dict(checkpoint['model'])
+    model.load_state_dict(layer, strict=False)
     # model.load_state_dict(checkpoint)
     model.cuda().eval()
     # model.eval()
