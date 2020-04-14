@@ -11,14 +11,14 @@ from torchvision.transforms import transforms as T
 from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
 
 from utils.datasets import LoadImagesAndLabels, collate_fn, JointDataset, letterbox, random_affine
-from model import Jde_RCNN
+from jde_rcnn import Jde_RCNN
 
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
 warnings.filterwarnings('ignore')
-os.environ['CUDA_VISIBLE_DEVICES']='1'
+os.environ['CUDA_VISIBLE_DEVICES']='2'
 
 def train(
         save_path,
