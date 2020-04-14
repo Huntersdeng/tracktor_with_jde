@@ -34,7 +34,7 @@ def test(
 
     model = Jde_RCNN(backbone, num_ID=1129)
     # model = torch.nn.DataParallel(model)
-    checkpoint = torch.load(weights, map_location='cpu')
+    checkpoint = torch.load(weights, map_location='cpu')['model']
     # Load weights to resume from
     layer = {}
     for model_layer in model.state_dict().keys():
@@ -42,7 +42,7 @@ def test(
             if model_layer==weights_layer.lstrip('module.'):
                 layer[model_layer] = weights
                 break
-    model.load_state_dict(layer, strict=False)
+    print(model.load_state_dict(layer, strict=False))
     # model.load_state_dict(checkpoint)
     model.cuda().eval()
     # model.eval()
