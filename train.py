@@ -98,6 +98,9 @@ def train(
         if not train_rpn_stage:
             for i, (name, p) in enumerate(model.backbone.named_parameters()):
                 p.requires_grad = False
+        else:
+            for i, (name, p) in enumerate(model.roi_heads.named_parameters()):
+                p.requires_grad = False
         loss_epoch_log = dict(loss_total=0, loss_classifier=0, loss_box_reg=0, loss_reid=0, loss_objectness=0, loss_rpn_box_reg=0)
         for i, (imgs, labels, imgs_path, _, targets_len) in enumerate(dataloader):
             targets = []

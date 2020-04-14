@@ -7,7 +7,7 @@ import numpy as np
 from sklearn import metrics
 from scipy import interpolate
 import torch.nn.functional as F
-from jde_rcnn import Jde_RCNN
+from model import Jde_RCNN
 from utils.utils import *
 from torchvision.transforms import transforms as T
 from utils.datasets import LoadImagesAndLabels, JointDataset, collate_fn
@@ -33,7 +33,12 @@ def test(
     # model = torch.nn.DataParallel(model)
     checkpoint = torch.load(weights, map_location='cpu')
     # Load weights to resume from
-    model.load_state_dict(checkpoint['model'])
+    for model_layer in model.state_dict().keys():
+        for weights_layer, weights in checkpoint.items():
+            if model_layer==weights_layer:
+                model.state_dict()[model_layer] = weights
+                break
+    # model.load_state_dict(checkpoint['model'])
     model.cuda().eval()
     # model.eval()
     # Get dataloader
