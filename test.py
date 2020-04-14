@@ -30,7 +30,7 @@ def test(
     # backbone = resnet_fpn_backbone(opt.backbone_name, True)
     # backbone.out_channels = 256
     nC = 1
-    model = FRCNN_FPN(num_ID=1129)
+    model = FRCNN_FPN(num_classes=2)
     # model = torch.nn.DataParallel(model)
     checkpoint = torch.load(weights, map_location='cpu')
     # Load weights to resume from
