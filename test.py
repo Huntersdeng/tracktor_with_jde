@@ -32,15 +32,15 @@ def test(
     nC = 1
     model = FRCNN_FPN(num_classes=2)
     # model = torch.nn.DataParallel(model)
-    checkpoint = torch.load(weights, map_location='cpu')
+    checkpoint = torch.load(weights, map_location='cpu')['model']
     # Load weights to resume from
-    # for model_layer in model.state_dict().keys():
-    #     for weights_layer, weights in checkpoint.items():
-    #         if model_layer==weights_layer:
-    #             model.state_dict()[model_layer] = weights
-    #             break
+    for model_layer in model.state_dict().keys():
+        for weights_layer, weights in checkpoint.items():
+            if model_layer==weights_layer:
+                model.state_dict()[model_layer] = weights
+                break
     # model.load_state_dict(checkpoint['model'])
-    model.load_state_dict(checkpoint)
+    # model.load_state_dict(checkpoint)
     model.cuda().eval()
     # model.eval()
     # Get dataloader
