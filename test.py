@@ -245,7 +245,7 @@ if __name__ == '__main__':
     parser.add_argument('--backbone-name', type=str, default='resnet101', help='backbone name')
     opt = parser.parse_args()
     print(opt, end='\n\n')
-    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     with torch.no_grad():
         if opt.test_emb:
             res = test_emb(
