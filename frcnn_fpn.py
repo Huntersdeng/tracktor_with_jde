@@ -20,7 +20,7 @@ class FRCNN_FPN(FasterRCNN):
 
     def __init__(self, num_ID, num_classes=2, len_embeddings=128):
         backbone = resnet_fpn_backbone('resnet50', False)
-        super(FRCNN_FPN, self).__init__(backbone, num_classes)
+        super(FRCNN_FPN, self).__init__(backbone, num_classes, min_size=720, max_size=960)
         # these values are cached to allow for feature reuse
         emb_scale = math.sqrt(2) * math.log(num_ID-1) if num_ID>1 else 1
         out_channels = backbone.out_channels
