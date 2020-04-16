@@ -23,7 +23,7 @@ from utils.datasets import LoadImagesAndLabels
 os.environ['CUDA_VISIBLE_DEVICES']='0'
 root = '/data/dgw/'
 # root = '..'
-output_dir = './output'
+output_dir = '../output'
 
 
 print("Initializing object detector.")
