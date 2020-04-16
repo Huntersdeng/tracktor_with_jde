@@ -21,8 +21,8 @@ from utils.utils import interpolate, plot_sequence, get_mot_accum, evaluate_mot_
 from utils.datasets import LoadImagesAndLabels
 
 os.environ['CUDA_VISIBLE_DEVICES']='0'
-root = '/data/dgw/'
-# root = '..'
+# root = '/data/dgw/'
+root = '..'
 output_dir = './output'
 
 
@@ -41,7 +41,7 @@ obj_detect = Jde_RCNN(backbone, num_ID=tracktor['num_ID'])
 print(obj_detect.load_state_dict(torch.load(tracktor['weights'], map_location='cpu')['model'], strict=False))
 
 obj_detect.eval()
-obj_detect.cuda()
+# obj_detect.cuda()
 
 tracker = Tracker(obj_detect, tracktor['tracker'])
 img_size = (tracktor['width'], tracktor['height'])
@@ -62,7 +62,9 @@ for seq_path in os.listdir(tracktor['dataset']):
     data_loader = DataLoader(sequence, batch_size=1, shuffle=False)
     seq = []
     for i, (frame, labels, imgs_path, _) in enumerate(tqdm(data_loader)):
-        seq.append({'gt': labels[:,2:6]})
+        gt = {}
+        for label in labels[0]:
+            gt[label[1]] = label[2:6]
         blob = {'img':frame.cuda()}
         with torch.no_grad():
             tracker.step(blob)
@@ -88,4 +90,4 @@ for seq_path in os.listdir(tracktor['dataset']):
 print(f"Tracking runtime for all sequences (without evaluation or image writing): "
             f"{time_total:.1f} s ({num_frames / time_total:.1f} Hz)")
 if mot_accums:
-    evaluate_mot_accums(mot_accums, [str(s) for s in dataset if not s.no_gt], generate_overall=True)
+    evaluate_mot_accums(mot_accums, [str(s) for s in os.listdir(tracktor['dataset'])], generate_overall=True)
