@@ -138,8 +138,7 @@ def train(
             loss_epoch_log[key] =loss_epoch_log[key]/i
         print("loss in epoch %d: "%(epoch))
         print(loss_epoch_log)
-        loss_log.append(loss_epoch_log)
-        
+                
 
         checkpoint = {'epoch': epoch,
                       'model': model.state_dict(),

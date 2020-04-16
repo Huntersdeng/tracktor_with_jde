@@ -1,7 +1,7 @@
 tracktor:
   backbone: resnet101
   num_ID: 1129
-  weights: ../weights/trained/latest.pt
+  weights: ../weights/trained/2/latest.pt
   dataset: ./data/test
   width: 960
   height: 720

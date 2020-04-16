@@ -38,6 +38,7 @@ with open('./cfg/tracktor.yaml', 'r') as f:
 backbone = resnet_fpn_backbone(tracktor['backbone'], True)
 backbone.out_channels = 256
 obj_detect = Jde_RCNN(backbone, num_ID=tracktor['num_ID'])
+
 print(obj_detect.load_state_dict(torch.load(tracktor['weights'], map_location='cpu')['model'], strict=False))
 
 obj_detect.eval()
