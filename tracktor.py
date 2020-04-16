@@ -21,7 +21,8 @@ from utils.utils import interpolate, plot_sequence, get_mot_accum, evaluate_mot_
 from utils.datasets import LoadImagesAndLabels
 
 os.environ['CUDA_VISIBLE_DEVICES']='0'
-root = '/data/dgw/'
+# root = '/data/dgw/'
+root = '..'
 output_dir = './output'
 
 
@@ -40,7 +41,7 @@ obj_detect = Jde_RCNN(backbone, num_ID=tracktor['num_ID'])
 print(obj_detect.load_state_dict(torch.load(tracktor['weights'], map_location='cpu')['model'], strict=False))
 
 obj_detect.eval()
-obj_detect.cuda()
+# obj_detect.cuda()
 
 tracker = Tracker(obj_detect, tracktor['tracker'])
 img_size = (tracktor['width'], tracktor['height'])
@@ -60,10 +61,11 @@ for seq_path in os.listdir(tracktor['dataset']):
     sequence = LoadImagesAndLabels(root, osp.join(tracktor['dataset'], seq_path), img_size, augment=False, transforms=transforms)
     data_loader = DataLoader(sequence, batch_size=1, shuffle=False)
     seq = []
-    for i, (frame, labels, imgs_path, _, targets_len) in enumerate(tqdm(data_loader)):
-        seq.append({'gt': labels})
+    for i, (frame, labels, imgs_path, _) in enumerate(tqdm(data_loader)):
+        seq.append({'gt': labels[:,2:6]})
+        blob = {'img':frame}
         with torch.no_grad():
-            tracker.step(frame)
+            tracker.step(blob)
         num_frames += 1
     results = tracker.get_results()
 

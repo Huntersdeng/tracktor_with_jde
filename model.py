@@ -127,7 +127,7 @@ class Jde_RCNN(GeneralizedRCNN):
         device = list(self.parameters())[0].device
         img = img.to(device)
 
-        detections = self(img)
+        detections = self(img)[0]
 
         return detections['boxes'].detach(), detections['scores'].detach()
 
