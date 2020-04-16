@@ -78,8 +78,7 @@ def train(
             optimizer_roi.load_state_dict(checkpoint['optimizer_roi'])            
 
         del checkpoint  # current, saved
-        with open(loss_log_path, 'r') as file:
-          loss_log = json.load(file)
+        
     else:
         model.cuda().train()
 
@@ -89,7 +88,6 @@ def train(
         optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr,
                                     weight_decay=5e-4)
 
-        loss_log = []
 
     
 
@@ -154,8 +152,9 @@ def train(
             # making the checkpoint lite
             checkpoint["optimizer"] = []
             torch.save(checkpoint, osp.join(weights_path, "weights_epoch_" + str(epoch) + ".pt"))
-    with open(loss_log_path, 'w+') as f:
-        json.dump(loss_log, f) 
+        with open(loss_log_path, 'a+') as f:
+            json.dump(loss_epoch_log, f) 
+
 
 
 if __name__ == '__main__':

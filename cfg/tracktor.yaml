@@ -6,7 +6,7 @@ tracktor:
   width: 960
   height: 720
   interpolate: True
-  write_images: False
+  write_images: True
   tracker:
     # FRCNN score threshold for detections
     detection_person_thresh: 0.5

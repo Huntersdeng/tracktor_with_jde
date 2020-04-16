@@ -87,7 +87,6 @@ for seq_path in os.listdir(tracktor['dataset']):
 
     if tracktor['write_images']:
         plot_sequence(results, sequence, osp.join(output_dir, tracktor['dataset'], seq_path).rstrip('.txt'))
-    break
 
 print(f"Tracking runtime for all sequences (without evaluation or image writing): "
             f"{time_total:.1f} s ({num_frames / time_total:.1f} Hz)")
