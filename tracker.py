@@ -96,7 +96,7 @@ class Tracker:
 	def get_pos(self):
 		"""Get the positions of all active tracks."""
 		if len(self.tracks) == 1:
-			pos = [self.tracks[0].pos]
+			pos = self.tracks[0].pos
 		elif len(self.tracks) > 1:
 			pos = torch.cat([t.pos for t in self.tracks], 0)
 		else:
@@ -106,7 +106,7 @@ class Tracker:
 	def get_features(self):
 		"""Get the features of all active tracks."""
 		if len(self.tracks) == 1:
-			features = [self.tracks[0].features]
+			features = self.tracks[0].features
 		elif len(self.tracks) > 1:
 			features = torch.cat([t.features for t in self.tracks], 0)
 		else:
@@ -116,7 +116,7 @@ class Tracker:
 	def get_inactive_features(self):
 		"""Get the features of all inactive tracks."""
 		if len(self.inactive_tracks) == 1:
-			features = [self.inactive_tracks[0].features]
+			features = self.inactive_tracks[0].features
 		elif len(self.inactive_tracks) > 1:
 			features = torch.cat([t.features for t in self.inactive_tracks], 0)
 		else:
