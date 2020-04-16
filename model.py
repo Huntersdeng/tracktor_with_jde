@@ -202,13 +202,11 @@ class featureHead(nn.Module):
 
         self.fc8 = nn.Linear(in_channels, representation_size)
         self.fc9 = nn.Linear(representation_size, representation_size)
-        self.fc10 = nn.Linear(representation_size, representation_size)
 
     def forward(self, x):
         x = x.flatten(start_dim=1)
         x = F.relu(self.fc8(x))
         x = F.relu(self.fc9(x))
-        x = F.relu(self.fc10(x))
 
         return x
 
