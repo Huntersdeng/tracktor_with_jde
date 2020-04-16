@@ -915,17 +915,14 @@ def get_mot_accum(results, seq):
             for gt_id, box in gt.items():
                 gt_ids.append(gt_id)
                 gt_boxes.append(box)
-            print(len(gt_boxes))
         
             gt_boxes = np.stack(gt_boxes, axis=0)
-            print(gt_boxes.shape)
             # x1, y1, x2, y2 --> x1, y1, width, height
             gt_boxes = np.stack((gt_boxes[:, 0] - gt_boxes[:, 2]/2,
                                  gt_boxes[:, 1] - gt_boxes[:, 3]/2,
                                  gt_boxes[:, 2],
                                  gt_boxes[:, 3]),
                                 axis=1)
-            print(gt_boxes.shape)
         else:
             gt_boxes = np.array([])
         
