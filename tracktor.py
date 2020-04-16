@@ -22,7 +22,7 @@ from utils.datasets import LoadImagesAndLabels
 
 os.environ['CUDA_VISIBLE_DEVICES']='0'
 root = '/data/dgw/'
-#root = '..'
+# root = '..'
 output_dir = './output'
 
 
@@ -67,11 +67,11 @@ for seq_path in os.listdir(tracktor['dataset']):
             gt[label[1]] = label[2:6]
         seq.append({'gt':gt})
         blob = {'img':frame.cuda()}
+        # blob = {'img':frame}
         with torch.no_grad():
             tracker.step(blob)
         num_frames += 1
     results = tracker.get_results()
-    print(results)
     time_total += time.time() - start
 
     print(f"Tracks found: {len(results)}")
@@ -86,11 +86,11 @@ for seq_path in os.listdir(tracktor['dataset']):
     write_results(seq_path.rstrip('.txt'), results, output_dir)
 
     if tracktor['write_images']:
-        plot_sequence(results, seq, osp.join(output_dir, tracktor['dataset'], str(seq)))
+        plot_sequence(results, sequence, osp.join(output_dir, tracktor['dataset'], seq_path).rstrip('.txt'))
     break
 
 print(f"Tracking runtime for all sequences (without evaluation or image writing): "
             f"{time_total:.1f} s ({num_frames / time_total:.1f} Hz)")
 if mot_accums:
-    #evaluate_mot_accums(mot_accums, [str(s) for s in os.listdir(tracktor['dataset'])], generate_overall=True)
-    evaluate_mot_accums(mot_accums, ['a'], generate_overall=True)
+    evaluate_mot_accums(mot_accums, [str(s) for s in os.listdir(tracktor['dataset'])], generate_overall=True)
+    # evaluate_mot_accums(mot_accums, ['a'], generate_overall=True)

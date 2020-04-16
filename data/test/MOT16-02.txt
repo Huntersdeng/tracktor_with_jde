@@ -1,0 +1,2 @@
+dataset/MOT16/train/MOT16-02/images/000481.jpg
+dataset/MOT16/train/MOT16-02/images/000482.jpg
