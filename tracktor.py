@@ -83,7 +83,7 @@ for seq_path in os.listdir(tracktor['dataset']):
     mot_accums.append(get_mot_accum(results, seq))
 
     print(f"Writing predictions to: {output_dir}")
-    write_results(seq_path, results, output_dir)
+    write_results(seq_path.rstrip('.txt'), results, output_dir)
 
     if tracktor['write_images']:
         plot_sequence(results, seq, osp.join(output_dir, tracktor['dataset'], str(seq)))

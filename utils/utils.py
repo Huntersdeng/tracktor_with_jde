@@ -921,7 +921,7 @@ def get_mot_accum(results, seq):
             gt_boxes = np.stack((gt_boxes[:, 0] - gt_boxes[:, 2]/2,
                                  gt_boxes[:, 1] - gt_boxes[:, 3]/2,
                                  gt_boxes[:, 2],
-                                 gt_boxes[:, 3],
+                                 gt_boxes[:, 3]),
                                 axis=1)
         else:
             gt_boxes = np.array([])
