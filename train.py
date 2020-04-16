@@ -44,9 +44,9 @@ def train(
     # root = '/home/hunter/Document/torch'
     root = '/data/dgw'
 
-    paths = {'CT':'./data/CT_train.txt', 
-             'ETH':'./data/ETH.txt', 'M16':'./data/MOT16_train.txt', 
-             'PRW':'./data/PRW_train.txt', 'CP':'./data/cp_train.txt'}
+    paths = {'CT':'./data/detect/CT_train.txt', 
+             'ETH':'./data/detect/ETH.txt', 'M16':'./data/detect/MOT16_train.txt', 
+             'PRW':'./data/detect/PRW_train.txt', 'CP':'./data/detect/cp_train.txt'}
     #paths = {'M16':'./data/cp_train.txt'}
     transforms = T.Compose([T.ToTensor()])
     trainset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
@@ -163,7 +163,7 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=30, help='number of epochs')
     parser.add_argument('--batch-size', type=int, default=8, help='size of each image batch')
     parser.add_argument('--accumulated-batches', type=int, default=1, help='number of batches before optimizer step')
-    parser.add_argument('--save_path', type=str, default='../',
+    parser.add_argument('--save-path', type=str, default='../',
                         help='Path for getting the trained model for resuming training (Should only be used with '
                                 '--resume)')
     parser.add_argument('--save-model-after', type=int, default=5,
