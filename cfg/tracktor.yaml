@@ -2,7 +2,7 @@ tracktor:
   backbone: resnet101
   num_ID: 1129
   weights: ../weights/trained/2/latest.pt
-  dataset: /data/dgw/dataset/MOT16/train
+  dataset: ./data/track
   width: 960
   height: 720
   interpolate: True
