@@ -9,7 +9,7 @@ from sklearn import metrics
 from scipy import interpolate
 import torch
 import torch.nn.functional as F
-from jde_rcnn import Jde_RCNN
+from model import Jde_RCNN
 from utils.utils import xyxy2xywh, non_max_suppression, ap_per_class, bbox_iou
 from torchvision.transforms import transforms as T
 from utils.datasets import LoadImagesAndLabels, JointDataset, collate_fn
@@ -44,7 +44,7 @@ def test(
     # Get dataloader
     root = '/data/dgw'
     # root = '/home/hunter/Document/torch'
-    paths = {'CP_val':'./data/cp_val.txt'}
+    paths = {'CP_val':'./data/track/MOT16-02.txt'}
     transforms = T.Compose([T.ToTensor()])
     valset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
 
