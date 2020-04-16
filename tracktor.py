@@ -21,8 +21,8 @@ from utils.utils import interpolate, plot_sequence, get_mot_accum, evaluate_mot_
 from utils.datasets import LoadImagesAndLabels
 
 os.environ['CUDA_VISIBLE_DEVICES']='0'
-# root = '/data/dgw/'
-root = '..'
+root = '/data/dgw/'
+# root = '..'
 output_dir = './output'
 
 
@@ -41,7 +41,7 @@ obj_detect = Jde_RCNN(backbone, num_ID=tracktor['num_ID'])
 print(obj_detect.load_state_dict(torch.load(tracktor['weights'], map_location='cpu')['model'], strict=False))
 
 obj_detect.eval()
-# obj_detect.cuda()
+obj_detect.cuda()
 
 tracker = Tracker(obj_detect, tracktor['tracker'])
 img_size = (tracktor['width'], tracktor['height'])
