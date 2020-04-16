@@ -255,7 +255,7 @@ class Tracker:
 		# Look for new detections #
 		###########################
 
-		self.obj_detect.load_image(blob['img'])
+		self.obj_detect.load_image(blob['img'].clone()).cuda()
 
 		if self.public_detections:
 			dets = blob['dets'].squeeze(dim=0)
@@ -264,7 +264,7 @@ class Tracker:
 			else:
 				boxes = scores = torch.zeros(0).cuda()
 		else:
-			boxes, scores = self.obj_detect.detect(blob['img'])
+			boxes, scores = self.obj_detect.detect(blob['img'].clone()).cuda()
 
 		if boxes.nelement() > 0:
 			boxes = clip_boxes_to_image(boxes, blob['img'].shape[-2:])
