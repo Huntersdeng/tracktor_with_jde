@@ -169,7 +169,7 @@ class Jde_RCNN(GeneralizedRCNN):
         return pred_boxes, pred_scores
 
     def get_embedding(self, boxes):
-        features = self.roi_head.box_roi_pool(self.features, boxes, self.preprocessed_images.image_sizes[0])
+        features = self.roi_heads.box_roi_pool(self.features, boxes, self.preprocessed_images.image_sizes[0])
         embed_features = self.roi_heads.embed_head(features)
         embeddings = self.roi_heads.embed_extractor(embed_features)
         return embeddings
