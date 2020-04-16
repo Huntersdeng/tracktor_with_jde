@@ -71,7 +71,7 @@ for seq_path in os.listdir(tracktor['dataset']):
             tracker.step(blob)
         num_frames += 1
     results = tracker.get_results()
-
+    print(results)
     time_total += time.time() - start
 
     print(f"Tracks found: {len(results)}")
@@ -92,4 +92,5 @@ for seq_path in os.listdir(tracktor['dataset']):
 print(f"Tracking runtime for all sequences (without evaluation or image writing): "
             f"{time_total:.1f} s ({num_frames / time_total:.1f} Hz)")
 if mot_accums:
-    evaluate_mot_accums(mot_accums, [str(s) for s in os.listdir(tracktor['dataset'])], generate_overall=True)
+    #evaluate_mot_accums(mot_accums, [str(s) for s in os.listdir(tracktor['dataset'])], generate_overall=True)
+    evaluate_mot_accums(mot_accums, ['a'], generate_overall=True)
