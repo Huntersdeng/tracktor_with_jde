@@ -44,9 +44,9 @@ def train(
     # root = '/home/hunter/Document/torch'
     root = '/data/dgw'
 
-    paths = {'CT':'./data/CalTech.txt', 
+    paths = {'CT':'./data/CT_train.txt', 
              'ETH':'./data/ETH.txt', 'M16':'./data/MOT16_train.txt', 
-             'PRW':'./data/PRW.txt', 'CP':'./data/cp_train.txt'}
+             'PRW':'./data/PRW_train.txt', 'CP':'./data/cp_train.txt'}
     #paths = {'M16':'./data/cp_train.txt'}
     transforms = T.Compose([T.ToTensor()])
     trainset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
@@ -171,7 +171,7 @@ if __name__ == '__main__':
     parser.add_argument('--train-rpn-stage', action='store_true', help='for training rpn')
     parser.add_argument('--img-size', type=int, default=(960,720), nargs='+', help='pixels')
     parser.add_argument('--resume', action='store_true', help='resume training flag')
-    parser.add_argument('--lr', type=float, default=5e-4, help='init lr')
+    parser.add_argument('--lr', type=float, default=1e-3, help='init lr')
     parser.add_argument('--backbone-name', type=str, default='resnet101', help='backbone name')
     opt = parser.parse_args()
 
