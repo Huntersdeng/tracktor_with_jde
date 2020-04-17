@@ -17,7 +17,7 @@ import math
 class Jde_RCNN(GeneralizedRCNN):
     def __init__(self, backbone, num_ID, num_classes=2, 
                  # transform parameters
-                 min_size=720, max_size=960,
+                 min_size=480, max_size=640,
                  image_mean=None, image_std=None,
                  # RPN parameters
                  rpn_anchor_generator=None, rpn_head=None,

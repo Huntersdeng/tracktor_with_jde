@@ -44,7 +44,10 @@ def test(
     # Get dataloader
     root = '/data/dgw'
     # root = '/home/hunter/Document/torch'
-    paths = {'CP_val':'./data/track/MOT16-02.txt'}
+    paths = {'CP_val':'./data/detect/cp_val.txt',
+             'M16':'./data/detect/MOT16_val.txt',
+             'PRW':'./data/detect/PRW_val.txt',
+             'CT':'./data/detect/CT_val.txt'}
     transforms = T.Compose([T.ToTensor()])
     valset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
 
