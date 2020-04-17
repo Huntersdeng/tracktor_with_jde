@@ -141,7 +141,7 @@ class Jde_RCNN(GeneralizedRCNN):
         if self.version=='v2':
             boxes, scores, box_features = detections['boxes'].detach(), detections['scores'].detach(), detections['box_features'].detach()
             for box, box_feature in zip(boxes, box_features):
-                self.box_features[str(float(box[0]))+','+str(float(box[1]))] = box_feature
+                self.box_features[str(int(box[0]))+','+str(int(box[1]))+','+str(int(box[2]))+','+str(int(box[3]))] = box_feature
         else:
             boxes, scores = detections['boxes'].detach(), detections['scores'].detach()
         return boxes, scores
@@ -183,12 +183,12 @@ class Jde_RCNN(GeneralizedRCNN):
         pred_scores = pred_scores[:, 1:].squeeze(dim=1).detach()
         if self.version=='v2':
             for box, box_feature in zip(boxes, box_features):
-                self.box_features[str(float(box[0]))+','+str(float(box[1]))] = box_feature
+                self.box_features[str(int(box[0]))+','+str(int(box[1]))+','+str(int(box[2]))+','+str(int(box[3]))] = box_feature
         return pred_boxes, pred_scores
 
     def get_embedding(self, boxes):
         if self.version=='v2':
-            embed_features = reduce(lambda x,y: torch.cat((x,y)), [self.box_features[str(float(box[0]))+','+str(float(box[1]))].view(1,-1) for box in boxes])
+            embed_features = reduce(lambda x,y: torch.cat((x,y)), [self.box_features[str(int(box[0]))+','+str(int(box[1]))+','+str(int(box[2]))+','+str(int(box[3]))].view(1,-1) for box in boxes])
         if self.version=='v1':
             boxes = [boxes]
             features = self.roi_heads.box_roi_pool(self.features, boxes, self.preprocessed_images.image_sizes[0])

@@ -39,8 +39,11 @@ img_size = (tracktor['width'], tracktor['height'])
 backbone = resnet_fpn_backbone(tracktor['backbone'], True)
 backbone.out_channels = 256
 obj_detect = Jde_RCNN(backbone, num_ID=tracktor['num_ID'], min_size=img_size[1], max_size=img_size[0], version=tracktor['version'])
-
-print(obj_detect.load_state_dict(torch.load(tracktor['weights'], map_location='cpu')['model'], strict=False))
+checkpoint = torch.load(tracktor['weights'], map_location='cpu')['model']
+if tracktor['version']=='v2':
+    checkpoint['roi_heads.embed_extractor.extract_embedding.weight'] = checkpoint['roi_heads.box_predictor.extract_embedding.weight']
+    checkpoint['roi_heads.embed_extractor.extract_embedding.bias'] = checkpoint['roi_heads.box_predictor.extract_embedding.bias']
+print(obj_detect.load_state_dict(checkpoint, strict=False))
 
 obj_detect.eval()
 obj_detect.cuda()
