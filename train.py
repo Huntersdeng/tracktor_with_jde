@@ -24,6 +24,7 @@ def train(
         save_path,
         save_every,
         train_rpn_stage,
+        train_reid,
         img_size=(640,480),
         resume=False,
         epochs=25,
@@ -122,9 +123,11 @@ def train(
                     optimizer_rpn.step()
                     optimizer_rpn.zero_grad()
             else:
-                # loss = (losses['loss_objectness'] + losses['loss_rpn_box_reg'])*0.2
-                # loss.backward(retain_graph=True)
-                losses['loss_total'].backward()
+                if train_reid:
+                    loss = losses['loss_reid']
+                else:
+                    loss = losses['loss_box_reg'] + losses['loss_classifier']
+                loss.backward()
                 if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
                     optimizer_roi.step()
                     optimizer_roi.zero_grad()
@@ -167,6 +170,7 @@ if __name__ == '__main__':
     parser.add_argument('--save-model-after', type=int, default=5,
                         help='Save a checkpoint of model at given interval of epochs')
     parser.add_argument('--train-rpn-stage', action='store_true', help='for training rpn')
+    parser.add_argument('--train-reid', action='store_true', help='for training reid')
     parser.add_argument('--img-size', type=int, default=(960,720), nargs='+', help='pixels')
     parser.add_argument('--resume', action='store_true', help='resume training flag')
     parser.add_argument('--lr', type=float, default=1e-3, help='init lr')
@@ -179,6 +183,7 @@ if __name__ == '__main__':
         save_path=opt.save_path,
         save_every=opt.save_model_after,
         train_rpn_stage=opt.train_rpn_stage,
+        train_reid=opt.train_reid,
         img_size=opt.img_size,
         resume=opt.resume,
         epochs=opt.epochs,
