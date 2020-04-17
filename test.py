@@ -33,7 +33,7 @@ def test(
     nC = 1
     # model = FRCNN_FPN(num_classes=2)
 
-    model = Jde_RCNN(backbone, num_ID=1129)
+    model = Jde_RCNN(backbone, num_ID=1129, min_size=img_size[1], max_size=img_size[0])
     # model = torch.nn.DataParallel(model)
     checkpoint = torch.load(weights, map_location='cpu')['model']
     # Load weights to resume from
@@ -162,7 +162,7 @@ def test_emb(
     backbone = resnet_fpn_backbone(opt.backbone_name, True)
     backbone.out_channels = 256
     nC = 1
-    model = Jde_RCNN(backbone, num_ID=1129)
+    model = Jde_RCNN(backbone, num_ID=1129, min_size=img_size[1], max_size=img_size[0])
     # model.eval_embedding()
     model.cuda().eval_embedding()
     # model = torch.nn.DataParallel(model)

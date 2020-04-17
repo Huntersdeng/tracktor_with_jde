@@ -57,7 +57,7 @@ def train(
     backbone = resnet_fpn_backbone(opt.backbone_name, True)
     backbone.out_channels = 256
 
-    model = Jde_RCNN(backbone, num_ID=trainset.nID)
+    model = Jde_RCNN(backbone, num_ID=trainset.nID, min_size=img_size[1], max_size=img_size[0])
     # model = torch.nn.DataParallel(model)
     start_epoch = 0
     if resume:
