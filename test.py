@@ -9,7 +9,7 @@ from sklearn import metrics
 from scipy import interpolate
 import torch
 import torch.nn.functional as F
-from model import Jde_RCNN
+from jde_rcnn import Jde_RCNN
 from utils.utils import xyxy2xywh, non_max_suppression, ap_per_class, bbox_iou
 from torchvision.transforms import transforms as T
 from utils.datasets import LoadImagesAndLabels, JointDataset, collate_fn
@@ -168,12 +168,14 @@ def test_emb(
     # model = torch.nn.DataParallel(model)
     checkpoint = torch.load(weights, map_location='cpu')
     # Load weights to resume from
-    model.load_state_dict(checkpoint['model'])
+    print(model.load_state_dict(checkpoint['model']))
 
     # Get dataloader
     root = '/data/dgw'
     #root = '/home/hunter/Document/torch'
-    paths = {'M16':'./data/MOT16_train.txt'}
+    paths = {'M16':'./data/detect/MOT16_val.txt',
+             'CT':'./data/detect/CT_val.txt',
+             'PRW':'./data/detect/PRW_val.txt'}
     transforms = T.Compose([T.ToTensor()])
     valset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
 
