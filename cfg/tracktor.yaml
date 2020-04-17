@@ -1,9 +1,9 @@
 tracktor:
   backbone: resnet101
   num_ID: 1129
-  version:'v1'
+  version: 'v2'
   weights: ../weights/trained/2/latest.pt
-  dataset: ./data/track
+  dataset: ./data/test
   width: 960
   height: 720
   interpolate: True
