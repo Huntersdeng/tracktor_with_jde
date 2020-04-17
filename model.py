@@ -10,12 +10,14 @@ from torchvision.models.detection.generalized_rcnn import GeneralizedRCNN
 from torchvision.models.detection.rpn import AnchorGenerator, RPNHead, RegionProposalNetwork
 from torchvision.models.detection.roi_heads import RoIHeads
 from torchvision.models.detection.faster_rcnn import TwoMLPHead, FastRCNNPredictor
-from torchvision.models.detection.transform import GeneralizedRCNNTransform, resize_boxes 
+from torchvision.models.detection.transform import GeneralizedRCNNTransform, resize_boxes
+from torchvision.ops import boxes as box_ops
 
 import math
+from functools import reduce
 
 class Jde_RCNN(GeneralizedRCNN):
-    def __init__(self, backbone, num_ID, num_classes=2, 
+    def __init__(self, backbone, num_ID, num_classes=2, version='v1',
                  # transform parameters
                  min_size=480, max_size=640,
                  image_mean=None, image_std=None,
@@ -82,11 +84,14 @@ class Jde_RCNN(GeneralizedRCNN):
         emb_scale = math.sqrt(2) * math.log(num_ID-1) if num_ID>1 else 1
 
         if embed_head is None:
-            resolution = box_roi_pool.output_size[0]
-            representation_size = 1024
-            embed_head = featureHead(
-                out_channels * resolution ** 2,
-                representation_size)  
+            if version=='v1':
+                resolution = box_roi_pool.output_size[0]
+                representation_size = 1024
+                embed_head = featureHead(
+                    out_channels * resolution ** 2,
+                    representation_size)
+            if version=='v2':
+                embed_head = box_head
 
         if box_predictor is None:
             representation_size = 1024
@@ -110,6 +115,7 @@ class Jde_RCNN(GeneralizedRCNN):
             bbox_reg_weights,
             box_score_thresh, box_nms_thresh, box_detections_per_img,
             len_embeddings, num_ID, embed_head, embed_extractor)
+        roi_heads.version = version
 
         if image_mean is None:
             image_mean = [0.485, 0.456, 0.406]
@@ -118,18 +124,27 @@ class Jde_RCNN(GeneralizedRCNN):
         transform = GeneralizedRCNNTransform(min_size, max_size, image_mean, image_std)
 
         super(Jde_RCNN, self).__init__(backbone, rpn, roi_heads, transform)
+        self.version = version
         self.original_image_sizes = None
         self.preprocessed_images = None
         self.features = None
+        self.box_features = None
     
 
-    def detect(self, img):
+    def detect(self):
         device = list(self.parameters())[0].device
-        img = img.to(device)
-
-        detections = self(img)[0]
-
-        return detections['boxes'].detach(), detections['scores'].detach()
+        images = self.preprocessed_images
+        images = images.to(device)
+        proposals, _ = self.rpn(images, self.features, None)
+        detections, _ = self.roi_heads(self.features, proposals, images.image_sizes, None)
+        detections = self.transform.postprocess(detections, images.image_sizes, self.original_image_sizes)[0]
+        if self.version=='v2':
+            boxes, scores, box_features = detections['boxes'].detach(), detections['scores'].detach(), detections['box_features'].detach()
+            for box, box_feature in zip(boxes, box_features):
+                self.box_features[str(box[0])+','+str(box[1])] = box_feature
+        else:
+            boxes, scores = detections['boxes'].detach(), detections['scores'].detach()
+        return boxes, scores
 
     def predict_boxes(self, boxes):
         device = list(self.parameters())[0].device
@@ -166,12 +181,18 @@ class Jde_RCNN(GeneralizedRCNN):
         pred_boxes = pred_boxes[:, 1:].squeeze(dim=1).detach()
         pred_boxes = resize_boxes(pred_boxes, self.preprocessed_images.image_sizes[0], self.original_image_sizes[0])
         pred_scores = pred_scores[:, 1:].squeeze(dim=1).detach()
+        if self.version=='v2':
+            for box, box_feature in zip(boxes, box_features):
+                self.box_features[str(box[0])+','+str(box[1])] = box_feature
         return pred_boxes, pred_scores
 
     def get_embedding(self, boxes):
-        boxes = [boxes]
-        features = self.roi_heads.box_roi_pool(self.features, boxes, self.preprocessed_images.image_sizes[0])
-        embed_features = self.roi_heads.embed_head(features)
+        if self.version=='v2':
+            embed_features = reduce(lambda x,y: torch.cat((x,y)), [self.box_features[str(box[0])+','+str(box[1])].view(1,-1) for box in boxes])
+        if self.version=='v1':
+            boxes = [boxes]
+            features = self.roi_heads.box_roi_pool(self.features, boxes, self.preprocessed_images.image_sizes[0])
+            embed_features = self.roi_heads.embed_head(features)
         embeddings = self.roi_heads.embed_extractor(embed_features)
         return embeddings
 
@@ -187,6 +208,7 @@ class Jde_RCNN(GeneralizedRCNN):
         self.features = self.backbone(preprocessed_images.tensors)
         if isinstance(self.features, torch.Tensor):
             self.features = OrderedDict([(0, self.features)])
+        self.box_features={}
 
 
 class featureHead(nn.Module):
@@ -299,7 +321,12 @@ class JDE_RoIHeads(RoIHeads):
 
 
         if self.training:
-            embed_features = self.embed_head(features)
+            if self.version == 'v1':
+                embed_features = self.embed_head(features)
+            elif self.version =='v2':
+                embed_features = box_features
+            else:
+                raise ValueError
             embeddings = self.embed_extractor(embed_features)
 
         result, losses = [], {}
@@ -310,16 +337,29 @@ class JDE_RoIHeads(RoIHeads):
             loss_total = loss_box_reg + loss_classifier + loss_reid
             losses = dict(loss_total=loss_total, loss_classifier=loss_classifier, loss_box_reg=loss_box_reg, loss_reid=loss_reid)
         else:
-            boxes, scores, labels = self.postprocess_detections(class_logits, box_regression, proposals, image_shapes)
-            num_images = len(boxes)
-            for i in range(num_images):
-                result.append(
-                    dict(
-                        boxes=boxes[i],
-                        labels=labels[i],
-                        scores=scores[i]
+            if self.version == 'v1':
+                boxes, scores, labels = self.postprocess_detections(class_logits, box_regression, proposals, image_shapes)
+                num_images = len(boxes)
+                for i in range(num_images):
+                    result.append(
+                        dict(
+                            boxes=boxes[i],
+                            labels=labels[i],
+                            scores=scores[i]
+                        )
                     )
-                )
+            elif self.version =='v2':
+                boxes, scores, labels, box_features = self.postprocess_detections_jde(class_logits, box_regression, box_features, proposals, image_shapes)
+                num_images = len(boxes)
+                for i in range(num_images):
+                    result.append(
+                        dict(
+                            boxes=boxes[i],
+                            labels=labels[i],
+                            scores=scores[i],
+                            box_features=box_features[i]
+                        )
+                    )
 
         return result, losses
 
@@ -412,3 +452,56 @@ class JDE_RoIHeads(RoIHeads):
             labels.append(labels_in_image)
             ids.append(ids_in_image)
         return matched_idxs, labels, ids
+
+    
+    def postprocess_detections_jde(self, class_logits, box_regression, box_features, proposals, image_shapes):
+        device = class_logits.device
+        num_classes = class_logits.shape[-1]
+
+        boxes_per_image = [len(boxes_in_image) for boxes_in_image in proposals]
+        pred_boxes = self.box_coder.decode(box_regression, proposals)
+
+        pred_scores = F.softmax(class_logits, -1)
+
+        # split boxes and scores per image
+        pred_boxes = pred_boxes.split(boxes_per_image, 0)
+        pred_scores = pred_scores.split(boxes_per_image, 0)
+        pred_features = box_features.split(boxes_per_image, 0)
+
+        all_boxes = []
+        all_scores = []
+        all_labels = []
+        all_box_features = [] 
+        for boxes, scores, features, image_shape in zip(pred_boxes, pred_scores, pred_features, image_shapes):
+            boxes = box_ops.clip_boxes_to_image(boxes, image_shape)
+
+            # create labels for each prediction
+            labels = torch.arange(num_classes, device=device)
+            labels = labels.view(1, -1).expand_as(scores)
+
+            # remove predictions with the background label
+            boxes = boxes[:, 1:]
+            scores = scores[:, 1:]
+            labels = labels[:, 1:]
+
+            # batch everything, by making every class prediction be a separate instance
+            boxes = boxes.reshape(-1, 4)
+            scores = scores.flatten()
+            labels = labels.flatten()
+
+            # remove low scoring boxes
+            inds = torch.nonzero(scores > self.score_thresh).squeeze(1)
+            boxes, scores, labels = boxes[inds], scores[inds], labels[inds]
+
+            # non-maximum suppression, independently done per class
+            keep = box_ops.batched_nms(boxes, scores, labels, self.nms_thresh)
+            # keep only topk scoring predictions
+            keep = keep[:self.detections_per_img]
+            boxes, scores, labels, features = boxes[keep], scores[keep], labels[keep], features[keep]
+
+            all_boxes.append(boxes)
+            all_scores.append(scores)
+            all_labels.append(labels)
+            all_box_features.append(features)
+
+        return all_boxes, all_scores, all_labels, all_box_features
