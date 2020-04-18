@@ -102,6 +102,8 @@ def train(
         if not train_rpn_stage:
             for i, (name, p) in enumerate(model.backbone.named_parameters()):
                 p.requires_grad = False
+            for i, (name, p) in enumerate(model.rpn.named_parameters()):
+                p.requires_grad = False
         else:
             for i, (name, p) in enumerate(model.roi_heads.named_parameters()):
                 p.requires_grad = False
