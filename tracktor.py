@@ -21,8 +21,8 @@ from utils.utils import interpolate, plot_sequence, get_mot_accum, evaluate_mot_
 from utils.datasets import LoadImagesAndLabels
 
 os.environ['CUDA_VISIBLE_DEVICES']='0'
-root = '/data/dgw/'
-# root = '..'
+# root = '/data/dgw/'
+root = '..'
 output_dir = '../output'
 
 
@@ -46,7 +46,7 @@ if tracktor['version']=='v2':
 print(obj_detect.load_state_dict(checkpoint, strict=False))
 
 obj_detect.eval()
-obj_detect.cuda()
+# obj_detect.cuda()
 
 tracker = Tracker(obj_detect, tracktor['tracker'])
 
@@ -70,8 +70,8 @@ for seq_path in os.listdir(tracktor['dataset']):
         for label in labels[0]:
             gt[label[1]] = label[2:6]
         seq.append({'gt':gt})
-        blob = {'img':frame.cuda()}
-        # blob = {'img':frame}
+        # blob = {'img':frame.cuda()}
+        blob = {'img':frame}
         with torch.no_grad():
             tracker.step(blob)
         num_frames += 1
