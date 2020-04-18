@@ -78,8 +78,11 @@ def train(
             optimizer_rpn.load_state_dict(checkpoint['optimizer_rpn'])
         if checkpoint['optimizer_roi'] is not None:
             optimizer_roi.load_state_dict(checkpoint['optimizer_roi'])
-        if checkpoint['optimizer_reid'] is not None:
-            optimizer_reid.load_state_dict(checkpoint['optimizer_roi'])            
+        try:
+            if checkpoint['optimizer_reid'] is not None:
+                optimizer_reid.load_state_dict(checkpoint['optimizer_reid'])
+        except KeyError:
+            pass
 
         del checkpoint  # current, saved
         
