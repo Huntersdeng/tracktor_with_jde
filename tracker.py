@@ -78,7 +78,7 @@ class Tracker:
 
 		# regress
 		boxes, scores = self.obj_detect.predict_boxes(pos)
-		pos = clip_boxes_to_image(boxes, blob['img'].shape[-2:])
+		pos = boxes
 
 		s = []
 		for i in range(len(self.tracks) - 1, -1, -1):
@@ -91,7 +91,7 @@ class Tracker:
 				# t.prev_pos = t.pos
 				t.pos = pos[i].view(1, -1)
 
-		return torch.Tensor(s[::-1])
+		return torch.Tensor(s[::-1]).cuda()
 
 	def get_pos(self):
 		"""Get the positions of all active tracks."""
@@ -100,7 +100,7 @@ class Tracker:
 		elif len(self.tracks) > 1:
 			pos = torch.cat([t.pos for t in self.tracks], 0)
 		else:
-			pos = torch.zeros(0)
+			pos = torch.zeros(0).cuda()
 		return pos
 
 	def get_features(self):
@@ -110,7 +110,7 @@ class Tracker:
 		elif len(self.tracks) > 1:
 			features = torch.cat([t.features for t in self.tracks], 0)
 		else:
-			features = torch.zeros(0)
+			features = torch.zeros(0).cuda()
 		return features
 
 	def get_inactive_features(self):
@@ -120,12 +120,12 @@ class Tracker:
 		elif len(self.inactive_tracks) > 1:
 			features = torch.cat([t.features for t in self.inactive_tracks], 0)
 		else:
-			features = torch.zeros(0)
+			features = torch.zeros(0).cuda()
 		return features
 
 	def reid(self, blob, new_det_pos, new_det_scores):
 		"""Tries to ReID inactive tracks with provided detections."""
-		new_det_features = [torch.zeros(0) for _ in range(len(new_det_pos))]
+		new_det_features = [torch.zeros(0).cuda() for _ in range(len(new_det_pos))]
 		
 		if self.do_reid:
 			new_det_features = self.obj_detect.get_embedding(new_det_pos)
@@ -169,15 +169,15 @@ class Tracker:
 				for t in remove_inactive:
 					self.inactive_tracks.remove(t)
 
-				keep = torch.Tensor([i for i in range(new_det_pos.size(0)) if i not in assigned]).long()
+				keep = torch.Tensor([i for i in range(new_det_pos.size(0)) if i not in assigned]).long().cuda()
 				if keep.nelement() > 0:
 					new_det_pos = new_det_pos[keep]
 					new_det_scores = new_det_scores[keep]
 					new_det_features = new_det_features[keep]
 				else:
-					new_det_pos = torch.zeros(0)
-					new_det_scores = torch.zeros(0)
-					new_det_features = torch.zeros(0)
+					new_det_pos = torch.zeros(0).cuda()
+					new_det_scores = torch.zeros(0).cuda()
+					new_det_features = torch.zeros(0).cuda()
 		
 		return new_det_pos, new_det_scores, new_det_features
 
@@ -262,7 +262,7 @@ class Tracker:
 			if dets.nelement() > 0:
 				boxes, scores = self.obj_detect.predict_boxes(dets)
 			else:
-				boxes = scores = torch.zeros(0)
+				boxes = scores = torch.zeros(0).cuda()
 		else:
 			boxes, scores = self.obj_detect.detect()
 
@@ -272,22 +272,22 @@ class Tracker:
 			# Filter out tracks that have too low person score
 			inds = torch.gt(scores, self.detection_person_thresh).nonzero().view(-1)
 		else:
-			inds = torch.zeros(0)
+			inds = torch.zeros(0).cuda()
 
 		if inds.nelement() > 0:
 			det_pos = boxes[inds]
 
 			det_scores = scores[inds]
 		else:
-			det_pos = torch.zeros(0)
-			det_scores = torch.zeros(0)
+			det_pos = torch.zeros(0).cuda()
+			det_scores = torch.zeros(0).cuda()
 
 		##################
 		# Predict tracks #
 		##################
 
 		num_tracks = 0
-		nms_inp_reg = torch.zeros(0)
+		nms_inp_reg = torch.zeros(0).cuda()
 		if len(self.tracks):
 			# align
 			if self.do_align:
@@ -306,9 +306,8 @@ class Tracker:
 
 				# nms here if tracks overlap
 				keep = nms(self.get_pos(), person_scores, self.regression_nms_thresh)
-
 				self.tracks_to_inactive([self.tracks[i] for i in list(range(len(self.tracks))) if i not in keep])
-
+				pos = list(self.get_pos())
 				if keep.nelement() > 0:
 					if self.do_reid:
 						new_features = self.get_appearances(blob)

@@ -181,6 +181,7 @@ class Jde_RCNN(GeneralizedRCNN):
         pred_boxes = pred_boxes[:, 1:].squeeze(dim=1).detach()
         pred_boxes = resize_boxes(pred_boxes, self.preprocessed_images.image_sizes[0], self.original_image_sizes[0])
         pred_scores = pred_scores[:, 1:].squeeze(dim=1).detach()
+        pred_boxes = box_ops.clip_boxes_to_image(pred_boxes, self.original_image_sizes[0])
         if self.version=='v2':
             for box, box_feature in zip(pred_boxes, box_features):
                 self.box_features[str(int(box[0]))+','+str(int(box[1]))+','+str(int(box[2]))+','+str(int(box[3]))] = box_feature
