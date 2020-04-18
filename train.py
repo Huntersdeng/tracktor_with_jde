@@ -58,7 +58,7 @@ def train(
     backbone = resnet_fpn_backbone(opt.backbone_name, True)
     backbone.out_channels = 256
 
-    model = Jde_RCNN(backbone, num_ID=trainset.nID, min_size=img_size[1], max_size=img_size[0])
+    model = Jde_RCNN(backbone, num_ID=trainset.nID, min_size=img_size[1], max_size=img_size[0], version=opt.model_version)
     # model = torch.nn.DataParallel(model)
     start_epoch = 0
     if resume:
@@ -69,9 +69,9 @@ def train(
         model.cuda().train()
 
         # Set optimizer
-        optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
-        optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
-        optimizer_reid = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=5*opt.lr)
+        optimizer_rpn = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
+        optimizer_roi = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
+        optimizer_reid = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
 
         start_epoch = checkpoint['epoch'] + 1
         if checkpoint['optimizer_rpn'] is not None:
@@ -90,12 +90,12 @@ def train(
         model.cuda().train()
 
         # Set optimizer
-        optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr,
-                                    weight_decay=5e-4)
-        optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr,
-                                    weight_decay=5e-4)
-        optimizer_reid = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=5*opt.lr,
-                                    weight_decay=5e-4)
+        optimizer_roi = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9,
+                                    weight_decay=1e-4)
+        optimizer_rpn = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9,
+                                    weight_decay=1e-4)
+        optimizer_reid = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9,
+                                    weight_decay=1e-4)
 
 
     
@@ -133,19 +133,24 @@ def train(
                     optimizer_rpn.step()
                     optimizer_rpn.zero_grad()
             else:
-                if train_reid:
-                    loss = losses['loss_reid']
-                    loss.backward()
-                    if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
-                        optimizer_reid.step()
-                        optimizer_reid.zero_grad()
-                else:
-                    loss = losses['loss_box_reg'] + losses['loss_classifier']
-                    loss.backward()
+                if model.version=='v1':
+                    if train_reid:
+                        loss = losses['loss_reid']
+                        loss.backward()
+                        if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
+                            optimizer_reid.step()
+                            optimizer_reid.zero_grad()
+                    else:
+                        loss = losses['loss_box_reg'] + losses['loss_classifier']
+                        loss.backward()
+                        if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
+                            optimizer_roi.step()
+                            optimizer_roi.zero_grad()
+                elif model.version='v2':
+                    loss['loss_total'].backward()
                     if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
                         optimizer_roi.step()
                         optimizer_roi.zero_grad()
-                
 
         ## print and log the loss
 
@@ -189,6 +194,7 @@ if __name__ == '__main__':
     parser.add_argument('--resume', action='store_true', help='resume training flag')
     parser.add_argument('--lr', type=float, default=1e-3, help='init lr')
     parser.add_argument('--backbone-name', type=str, default='resnet101', help='backbone name')
+    parser.add_argument('--model-version', type=str, default='v1', help='model')
     opt = parser.parse_args()
 
     init_seeds()

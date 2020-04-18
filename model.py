@@ -230,8 +230,8 @@ class featureHead(nn.Module):
 
     def forward(self, x):
         x = x.flatten(start_dim=1)
-        x = F.relu(F.dropout(self.fc8(x), 0.7))
-        x = F.relu(F.dropout(self.fc9(x), 0.7))
+        x = F.relu(self.fc8(x))
+        x = F.relu(self.fc9(x))
         return x
 
 class featureExtractor(nn.Module):
@@ -294,9 +294,9 @@ class JDE_RoIHeads(RoIHeads):
         self.identifier = nn.Linear(len_embeddings, num_ID)
 
         # # TODO
-        # self.s_c = nn.Parameter(-4.15*torch.ones(1))  # -4.15
-        # self.s_r = nn.Parameter(-4.85*torch.ones(1))  # -4.85
-        # self.s_id = nn.Parameter(-2.3*torch.ones(1))  # -2.3
+        self.s_c = nn.Parameter(-4.15*torch.ones(1))  # -4.15
+        self.s_r = nn.Parameter(-4.85*torch.ones(1))  # -4.85
+        self.s_id = nn.Parameter(-2.3*torch.ones(1))  # -2.3
 
     def forward(self, features, proposals, image_shapes, targets=None):
         """
@@ -336,7 +336,8 @@ class JDE_RoIHeads(RoIHeads):
             loss_classifier, loss_box_reg, loss_reid = self.JDE_loss(
                 class_logits, box_regression, embeddings, labels, regression_targets, ids)
 
-            loss_total = loss_box_reg + loss_classifier + loss_reid
+            loss_total = torch.exp(-self.s_r)*loss_box_reg + torch.exp(-self.s_c)*loss_classifier + torch.exp(-self.s_id)*loss_reid + \
+                   (self.s_r + self.s_c + self.s_id)
             losses = dict(loss_total=loss_total, loss_classifier=loss_classifier, loss_box_reg=loss_box_reg, loss_reid=loss_reid)
         else:
             if self.version == 'v1':
