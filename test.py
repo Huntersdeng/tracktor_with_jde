@@ -2,6 +2,7 @@ import argparse
 import json
 import time
 from pathlib import Path
+from functools import reduce
 import numpy as np
 import os
 
@@ -163,12 +164,9 @@ def test_emb(
     backbone.out_channels = 256
     nC = 1
     model = Jde_RCNN(backbone, num_ID=1129, min_size=img_size[1], max_size=img_size[0])
-    # model.eval_embedding()
-    model.cuda().eval_embedding()
-    # model = torch.nn.DataParallel(model)
     checkpoint = torch.load(weights, map_location='cpu')
     # Load weights to resume from
-    print(model.load_state_dict(checkpoint['model']))
+    print(model.load_state_dict(checkpoint['model'], strict=False))
 
     # Get dataloader
     root = '/data/dgw'
@@ -189,24 +187,20 @@ def test_emb(
     print('Extracting pedestrain features...')
     for batch_i, (imgs, labels, paths, shapes, targets_len) in enumerate(dataloader):
         t = time.time()
-        targets = []
+        boxes = []
         imgs = imgs.cuda()
         labels = labels.cuda()
         ids = []
         for target_len, label in zip(np.squeeze(targets_len), labels):
             ## convert the input to demanded format
             ids += list(label[0:int(target_len), 1])
-            target = {}
-            target['boxes'] = label[0:int(target_len), 2:6]
-            target['ids'] = (label[0:int(target_len), 1]).long()
-            target['labels'] = torch.ones_like(target['ids'])
-            targets.append(target)
-        output = model(imgs, targets)
-        for out in output:
-            for feat, id_label in zip(out['embeddings'], ids):
-                if id_label != -1:
-                    embedding.append(feat.view(1,-1))
-                    id_labels.append(id_label)
+            boxes.append(label[0:int(target_len), 2:6])
+        boxes = reduce(lambda x,y:torch.cat(x,y), boxes)
+        model.load_image(imgs)
+        embeddings = model.get_embedding(boxes)
+        for id_label, feat in zip(ids, embeddings):
+            embedding.append(feat.view(1,-1))
+            id_labels.append(id_label)
 
         if batch_i % print_interval==0:
             print('Extracting {}/{}, # of instances {}, time {:.2f} sec.'.format(batch_i, len(dataloader), len(id_labels), time.time() - t))
