@@ -71,12 +71,15 @@ def train(
         # Set optimizer
         optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
         optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
+        optimizer_reid = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
 
         start_epoch = checkpoint['epoch'] + 1
         if checkpoint['optimizer_rpn'] is not None:
             optimizer_rpn.load_state_dict(checkpoint['optimizer_rpn'])
         if checkpoint['optimizer_roi'] is not None:
-            optimizer_roi.load_state_dict(checkpoint['optimizer_roi'])            
+            optimizer_roi.load_state_dict(checkpoint['optimizer_roi'])
+        if checkpoint['optimizer_reid'] is not None:
+            optimizer_reid.load_state_dict(checkpoint['optimizer_roi'])            
 
         del checkpoint  # current, saved
         
@@ -87,6 +90,8 @@ def train(
         optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr,
                                     weight_decay=5e-4)
         optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr,
+                                    weight_decay=5e-4)
+        optimizer_reid = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr,
                                     weight_decay=5e-4)
 
 
@@ -125,12 +130,17 @@ def train(
             else:
                 if train_reid:
                     loss = losses['loss_reid']
+                    loss.backward()
+                    if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
+                        optimizer_reid.step()
+                        optimizer_reid.zero_grad()
                 else:
                     loss = losses['loss_box_reg'] + losses['loss_classifier']
-                loss.backward()
-                if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
-                    optimizer_roi.step()
-                    optimizer_roi.zero_grad()
+                    loss.backward()
+                    if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
+                        optimizer_roi.step()
+                        optimizer_roi.zero_grad()
+                
 
         ## print and log the loss
 
@@ -146,13 +156,16 @@ def train(
         checkpoint = {'epoch': epoch,
                       'model': model.state_dict(),
                       'optimizer_rpn': optimizer_rpn.state_dict(),
-                      'optimizer_roi': optimizer_roi.state_dict()}
+                      'optimizer_roi': optimizer_roi.state_dict(),
+                      'optimizer_reid': optimizer_reid.state_dict()}
 
         latest = osp.join(weights_path, 'latest.pt')
         torch.save(checkpoint, latest)
         if epoch % save_every == 0 and epoch != 0:
             # making the checkpoint lite
-            checkpoint["optimizer"] = []
+            checkpoint["optimizer_rpn"] = []
+            checkpoint["optimizer_roi"] = []
+            checkpoint["optimizer_reid"] = []
             torch.save(checkpoint, osp.join(weights_path, "weights_epoch_" + str(epoch) + ".pt"))
         with open(loss_log_path, 'a+') as f:
             json.dump(loss_epoch_log, f) 
