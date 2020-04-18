@@ -3,7 +3,7 @@ tracktor:
   num_ID: 1129
   version: 'v2'
   weights: ../weights/trained/2/latest.pt
-  dataset: ./data/test
+  dataset: ./data/track
   width: 960
   height: 720
   interpolate: True
@@ -38,7 +38,7 @@ tracktor:
     # Threshold increment between two iterations (original 0.001)
     termination_eps: 0.00001
     # Use siamese network to do reid
-    do_reid: True
+    do_reid: False
     # How much timesteps dead tracks are kept and cosidered for reid
     inactive_patience: 10
     # How similar do image and old track need to be to be considered the same person

@@ -171,10 +171,12 @@ def test_emb(
     # Get dataloader
     root = '/data/dgw'
     # root = '/home/hunter/Document/torch'
-    paths = {'M16':'./data/detect/MOT16_val.txt',
-             'CT':'./data/detect/CT_val.txt',
-             'PRW':'./data/detect/PRW_val.txt'}
-    # paths = {'M16':'./data/test/MOT16-02.txt'}
+    #paths = {'M16':'./data/detect/MOT16_val.txt',
+    #         'CT':'./data/detect/CT_val.txt',
+    #         'PRW':'./data/detect/PRW_val.txt'}
+    paths = {'M16':'./data/detect/MOT16_train.txt',
+             'CT':'./data/detect/CT_train.txt',
+             'PRW':'./data/detect/PRW_train.txt'}
     transforms = T.Compose([T.ToTensor()])
     valset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
 
@@ -245,28 +247,28 @@ if __name__ == '__main__':
     parser.add_argument('--backbone-name', type=str, default='resnet101', help='backbone name')
     opt = parser.parse_args()
     print(opt, end='\n\n')
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '2'
     with torch.no_grad():
-        # if opt.test_emb:
-        res = test_emb(
-            opt.weights,
-            opt.img_size,
-            opt.batch_size,
-            opt.iou_thres,
-            opt.conf_thres,
-            opt.nms_thres,
-            opt.print_interval,
-            opt
-        )
-        # else:
-        #     mAP = test(
-        #         opt.weights,
-        #         opt.img_size,
-        #         opt.batch_size,
-        #         opt.iou_thres,
-        #         opt.conf_thres,
-        #         opt.nms_thres,
-        #         opt.print_interval,
-        #         opt
-        #     )
+        if opt.test_emb:
+            res = test_emb(
+                opt.weights,
+                opt.img_size,
+                opt.batch_size,
+                opt.iou_thres,
+                opt.conf_thres,
+                opt.nms_thres,
+                opt.print_interval,
+                opt
+            )
+        else:
+            mAP = test(
+                opt.weights,
+                opt.img_size,
+                opt.batch_size,
+                opt.iou_thres,
+                opt.conf_thres,
+                opt.nms_thres,
+                opt.print_interval,
+                opt
+            )
 

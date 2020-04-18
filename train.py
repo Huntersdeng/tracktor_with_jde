@@ -71,7 +71,7 @@ def train(
         # Set optimizer
         optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
         optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
-        optimizer_reid = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
+        optimizer_reid = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=5*opt.lr)
 
         start_epoch = checkpoint['epoch'] + 1
         if checkpoint['optimizer_rpn'] is not None:
@@ -94,7 +94,7 @@ def train(
                                     weight_decay=5e-4)
         optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr,
                                     weight_decay=5e-4)
-        optimizer_reid = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr,
+        optimizer_reid = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=5*opt.lr,
                                     weight_decay=5e-4)
 
 
@@ -167,14 +167,10 @@ def train(
         latest = osp.join(weights_path, 'latest.pt')
         torch.save(checkpoint, latest)
         if epoch % save_every == 0 and epoch != 0:
-            # making the checkpoint lite
-            checkpoint["optimizer_rpn"] = []
-            checkpoint["optimizer_roi"] = []
-            checkpoint["optimizer_reid"] = []
             torch.save(checkpoint, osp.join(weights_path, "weights_epoch_" + str(epoch) + ".pt"))
         with open(loss_log_path, 'a+') as f:
             json.dump(loss_epoch_log, f) 
-
+            f.write('\n')
 
 
 if __name__ == '__main__':
