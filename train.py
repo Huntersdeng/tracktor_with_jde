@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 warnings.filterwarnings('ignore')
-os.environ['CUDA_VISIBLE_DEVICES']='1'
+os.environ['CUDA_VISIBLE_DEVICES']='0,1'
 
 def train(
         save_path,
@@ -68,6 +68,7 @@ def train(
         model.load_state_dict(checkpoint['model'])
         model.cuda().train()
 
+
         # Set optimizer
         optimizer_rpn = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
         optimizer_roi = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
@@ -98,7 +99,8 @@ def train(
                                     weight_decay=1e-4)
 
 
-    
+    for name in model.roi_heads.state_dict().keys():
+        print(name)
 
     for epoch in range(epochs):
         epoch += start_epoch
@@ -146,7 +148,7 @@ def train(
                         if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
                             optimizer_roi.step()
                             optimizer_roi.zero_grad()
-                elif model.version='v2':
+                elif model.version=='v2':
                     loss['loss_total'].backward()
                     if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
                         optimizer_roi.step()
