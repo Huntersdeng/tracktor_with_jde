@@ -192,7 +192,7 @@ class Jde_RCNN(GeneralizedRCNN):
         if self.version=='v1':
             if type(boxes)!=list:
                 boxes = [boxes]
-            features = self.roi_heads.box_roi_pool(self.features, boxes, self.preprocessed_images.image_sizes[0])
+            features = self.roi_heads.box_roi_pool(self.features, boxes, self.preprocessed_images.image_sizes)
             embed_features = self.roi_heads.embed_head(features)
         embeddings = self.roi_heads.embed_extractor(embed_features)
         return embeddings
