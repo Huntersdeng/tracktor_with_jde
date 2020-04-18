@@ -169,28 +169,28 @@ def test_emb(
     print(model.load_state_dict(checkpoint['model'], strict=False))
 
     # Get dataloader
-    # root = '/data/dgw'
-    root = '/home/hunter/Document/torch'
-    # paths = {'M16':'./data/detect/MOT16_val.txt',
-    #          'CT':'./data/detect/CT_val.txt',
-    #          'PRW':'./data/detect/PRW_val.txt'}
-    paths = {'M16':'./data/test/MOT16-02.txt'}
+    root = '/data/dgw'
+    # root = '/home/hunter/Document/torch'
+    paths = {'M16':'./data/detect/MOT16_val.txt',
+             'CT':'./data/detect/CT_val.txt',
+             'PRW':'./data/detect/PRW_val.txt'}
+    # paths = {'M16':'./data/test/MOT16-02.txt'}
     transforms = T.Compose([T.ToTensor()])
     valset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
 
     dataloader = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=True,
                                                 num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate_fn)
 
-    # model.cuda().eval()
-    model.eval()
+    model.cuda().eval()
+    # model.eval()
 
     embedding, id_labels = [], []
     print('Extracting pedestrain features...')
     for batch_i, (imgs, labels, paths, shapes, targets_len) in enumerate(dataloader):
         t = time.time()
         boxes = []
-        # imgs = imgs.cuda()
-        # labels = labels.cuda()
+        imgs = imgs.cuda()
+        labels = labels.cuda()
         ids = []
         for target_len, label in zip(np.squeeze(targets_len), labels):
             ## convert the input to demanded format
