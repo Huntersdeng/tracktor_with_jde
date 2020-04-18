@@ -195,7 +195,6 @@ def test_emb(
             ## convert the input to demanded format
             ids += list(label[0:int(target_len), 1])
             boxes.append(label[0:int(target_len), 2:6])
-        boxes = reduce(lambda x,y:torch.cat((x,y)), boxes)
         model.load_image(imgs)
         embeddings = model.get_embedding(boxes)
         for id_label, feat in zip(ids, embeddings):

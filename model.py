@@ -190,7 +190,8 @@ class Jde_RCNN(GeneralizedRCNN):
         if self.version=='v2':
             embed_features = reduce(lambda x,y: torch.cat((x,y)), [self.box_features[str(int(box[0]))+','+str(int(box[1]))+','+str(int(box[2]))+','+str(int(box[3]))].view(1,-1) for box in boxes])
         if self.version=='v1':
-            boxes = [boxes]
+            if type(boxes)!=list:
+                boxes = [boxes]
             features = self.roi_heads.box_roi_pool(self.features, boxes, self.preprocessed_images.image_sizes[0])
             embed_features = self.roi_heads.embed_head(features)
         embeddings = self.roi_heads.embed_extractor(embed_features)
