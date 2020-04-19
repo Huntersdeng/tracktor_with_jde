@@ -1,13 +1,13 @@
 tracktor:
-  backbone: resnet101
+  backbone: resnet50
   num_ID: 1129
-  version: 'v2'
-  weights: ../weights/trained/2/latest.pt
-  dataset: ./data/track
-  width: 960
-  height: 720
+  version: 'v1'
+  weights: ../weights/training/1/resnet50_img_size640_480/latest.pt
+  dataset: ./data/track/train
+  width: 640
+  height: 480
   interpolate: True
-  write_images: False
+  write_images: True
   tracker:
     # FRCNN score threshold for detections
     detection_person_thresh: 0.5
