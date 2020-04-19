@@ -161,7 +161,7 @@ def test(
 
 
 def test_emb(
-            weights,
+            weights_path,
             batch_size=16,
             iou_thres=0.5,
             conf_thres=0.3,
