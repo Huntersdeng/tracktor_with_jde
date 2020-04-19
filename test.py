@@ -51,10 +51,11 @@ def test(
     root = '/data/dgw'
     # root = '/home/hunter/Document/torch'
     if not test_trainset:
-        paths = {'CP_val':'./data/detect/cp_val.txt',
-                'M16':'./data/detect/MOT16_val.txt',
-                'PRW':'./data/detect/PRW_val.txt',
-                'CT':'./data/detect/CT_val.txt'}
+        # paths = {'CP_val':'./data/detect/cp_val.txt',
+        #         'M16':'./data/detect/MOT16_val.txt',
+        #         'PRW':'./data/detect/PRW_val.txt',
+        #         'CT':'./data/detect/CT_val.txt'}
+        paths = {'M16':'./data/track/train/MOT16-02.txt'}
     else:
         paths = {'CP':'./data/detect/cp_train.txt',
                 'M16':'./data/detect/MOT16_train.txt',
@@ -188,9 +189,10 @@ def test_emb(
     root = '/data/dgw'
     # root = '/home/hunter/Document/torch'
     if not test_trainset:
-        paths = {'M16':'./data/detect/MOT16_val.txt',
-                'CT':'./data/detect/CT_val.txt',
-                'PRW':'./data/detect/PRW_val.txt'}
+        # paths = {'M16':'./data/detect/MOT16_val.txt',
+        #         'CT':'./data/detect/CT_val.txt',
+        #         'PRW':'./data/detect/PRW_val.txt'}
+        paths = {'M16':'./data/track/train/MOT16-02.txt'}
     else:
         paths = {'M16':'./data/detect/MOT16_train.txt',
                 'CT':'./data/detect/CT_train.txt',
