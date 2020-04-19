@@ -5,6 +5,7 @@ from pathlib import Path
 from functools import reduce
 import numpy as np
 import os
+import yaml
 
 from sklearn import metrics
 from scipy import interpolate
@@ -17,19 +18,23 @@ from utils.datasets import LoadImagesAndLabels, JointDataset, collate_fn
 from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
 
 def test(
-        weights,
-        img_size = (640,480),
+        weights_path,
         batch_size=16,
         iou_thres=0.5,
         conf_thres=0.3,
         nms_thres=0.45,
         print_interval=40,
+        test_trainset = False,
         opt=None
 ):
     
-
+    with open(os.path.join(weights_path, 'model.yaml'), 'r') as f:
+        cfg = yaml.load(f,Loader=yaml.FullLoader)
+    weights = os.path.join(weights_path, 'latest.pt')
+    img_size = (cfg['width'], cfg['height'])
+    backbone_name = cfg['backbone_name']
     # Initialize model
-    backbone = resnet_fpn_backbone(opt.backbone_name, True)
+    backbone = resnet_fpn_backbone(backbone_name, True)
     backbone.out_channels = 256
     nC = 1
     # model = FRCNN_FPN(num_classes=2)
@@ -45,14 +50,20 @@ def test(
     # Get dataloader
     root = '/data/dgw'
     # root = '/home/hunter/Document/torch'
-    paths = {'CP_val':'./data/detect/cp_val.txt',
-             'M16':'./data/detect/MOT16_val.txt',
-             'PRW':'./data/detect/PRW_val.txt',
-             'CT':'./data/detect/CT_val.txt'}
+    if not test_trainset:
+        paths = {'CP_val':'./data/detect/cp_val.txt',
+                'M16':'./data/detect/MOT16_val.txt',
+                'PRW':'./data/detect/PRW_val.txt',
+                'CT':'./data/detect/CT_val.txt'}
+    else:
+        paths = {'CP':'./data/detect/cp_train.txt',
+                'M16':'./data/detect/MOT16_train.txt',
+                'PRW':'./data/detect/PRW_train.txt',
+                'CT':'./data/detect/CT_train.txt'}
     transforms = T.Compose([T.ToTensor()])
-    valset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
+    dataset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
 
-    dataloader = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=True,
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True,
                                                 num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate_fn)
 
     mean_mAP, mean_R, mean_P, seen = 0.0, 0.0, 0.0, 0
@@ -151,16 +162,21 @@ def test(
 
 def test_emb(
             weights,
-            img_size=(640,480),
             batch_size=16,
             iou_thres=0.5,
             conf_thres=0.3,
             nms_thres=0.45,
             print_interval=40,
+            test_trainset = False,
             opt=None
 ):
+    with open(os.path.join(weights_path, 'model.yaml'), 'r') as f:
+        cfg = yaml.load(f,Loader=yaml.FullLoader)
+    weights = os.path.join(weights_path, 'latest.pt')
+    img_size = (cfg['width'], cfg['height'])
+    backbone_name = cfg['backbone_name']
 
-    backbone = resnet_fpn_backbone(opt.backbone_name, True)
+    backbone = resnet_fpn_backbone(backbone_name, True)
     backbone.out_channels = 256
     nC = 1
     model = Jde_RCNN(backbone, num_ID=1129, min_size=img_size[1], max_size=img_size[0])
@@ -171,16 +187,19 @@ def test_emb(
     # Get dataloader
     root = '/data/dgw'
     # root = '/home/hunter/Document/torch'
-    paths = {'M16':'./data/detect/MOT16_val.txt',
-             'CT':'./data/detect/CT_val.txt',
-             'PRW':'./data/detect/PRW_val.txt'}
-    paths = {'M16':'./data/detect/MOT16_train.txt',
-             'CT':'./data/detect/CT_train.txt',
-             'PRW':'./data/detect/PRW_train.txt'}
-    transforms = T.Compose([T.ToTensor()])
-    valset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
+    if not test_trainset:
+        paths = {'M16':'./data/detect/MOT16_val.txt',
+                'CT':'./data/detect/CT_val.txt',
+                'PRW':'./data/detect/PRW_val.txt'}
+    else:
+        paths = {'M16':'./data/detect/MOT16_train.txt',
+                'CT':'./data/detect/CT_train.txt',
+                'PRW':'./data/detect/PRW_train.txt'}
 
-    dataloader = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=True,
+    transforms = T.Compose([T.ToTensor()])
+    dataset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
+
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True,
                                                 num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate_fn)
 
     model.cuda().eval()
@@ -236,39 +255,39 @@ def test_emb(
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='test.py')
-    parser.add_argument('--img-size', type=int, default=(960,720), nargs='+', help='pixels')
     parser.add_argument('--batch-size', type=int, default=4, help='size of each image batch')
-    parser.add_argument('--weights', type=str, default='../weights/trained/2/latest.pt', help='path to weights file')
+    parser.add_argument('--weights_path', type=str, default='../weights/trained/2/', help='path to weights file')
     parser.add_argument('--iou-thres', type=float, default=0.5, help='iou threshold required to qualify as detected')
     parser.add_argument('--conf-thres', type=float, default=0.3, help='object confidence threshold')
     parser.add_argument('--nms-thres', type=float, default=0.5, help='iou threshold for non-maximum suppression')
     parser.add_argument('--print-interval', type=int, default=10, help='size of each image dimension')
     parser.add_argument('--test-emb', action='store_true', help='test embedding')
-    parser.add_argument('--backbone-name', type=str, default='resnet101', help='backbone name')
+    parser.add_argument('--test-trainset', action='store_true', help='test trainset')
+    
     opt = parser.parse_args()
     print(opt, end='\n\n')
     os.environ['CUDA_VISIBLE_DEVICES'] = '2'
     with torch.no_grad():
         if opt.test_emb:
             res = test_emb(
-                opt.weights,
-                opt.img_size,
+                opt.weights_path,
                 opt.batch_size,
                 opt.iou_thres,
                 opt.conf_thres,
                 opt.nms_thres,
                 opt.print_interval,
+                opt.test_trainset,
                 opt
             )
         else:
             mAP = test(
-                opt.weights,
-                opt.img_size,
+                opt.weights_path,
                 opt.batch_size,
                 opt.iou_thres,
                 opt.conf_thres,
                 opt.nms_thres,
                 opt.print_interval,
+                opt.test_trainset,
                 opt
             )
 

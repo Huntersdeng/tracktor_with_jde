@@ -33,7 +33,7 @@ def train(
         freeze_backbone=False,
         opt=None
 ):
-
+    os.environ['CUDA_VISIBLE_DEVICES']=opt.gpu
     model_name = opt.backbone_name + '_img_size' + str(img_size[0]) + '_' + str(img_size[1]) 
     weights_path = osp.join(save_path, model_name)
     loss_log_path = osp.join(weights_path, 'loss.json')
@@ -197,6 +197,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=1e-3, help='init lr')
     parser.add_argument('--backbone-name', type=str, default='resnet101', help='backbone name')
     parser.add_argument('--model-version', type=str, default='v1', help='model')
+    parser.add_argument('--gpu', type=str, default='0', help='which gpu to use')
     opt = parser.parse_args()
 
     init_seeds()
