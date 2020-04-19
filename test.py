@@ -171,9 +171,9 @@ def test_emb(
     # Get dataloader
     root = '/data/dgw'
     # root = '/home/hunter/Document/torch'
-    #paths = {'M16':'./data/detect/MOT16_val.txt',
-    #         'CT':'./data/detect/CT_val.txt',
-    #         'PRW':'./data/detect/PRW_val.txt'}
+    paths = {'M16':'./data/detect/MOT16_val.txt',
+             'CT':'./data/detect/CT_val.txt',
+             'PRW':'./data/detect/PRW_val.txt'}
     paths = {'M16':'./data/detect/MOT16_train.txt',
              'CT':'./data/detect/CT_train.txt',
              'PRW':'./data/detect/PRW_train.txt'}
@@ -203,10 +203,10 @@ def test_emb(
         for id_label, feat in zip(ids, embeddings):
             embedding.append(feat.view(1,-1))
             id_labels.append(id_label)
-
+        
         if batch_i % print_interval==0:
             print('Extracting {}/{}, # of instances {}, time {:.2f} sec.'.format(batch_i, len(dataloader), len(id_labels), time.time() - t))
-        if batch_i*batch_size>1000:
+        if batch_i * batch_size > 2000:
             break
     print('Computing pairwise similairity...')
     if len(embedding) <1 :

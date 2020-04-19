@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 warnings.filterwarnings('ignore')
-os.environ['CUDA_VISIBLE_DEVICES']='0,1'
+os.environ['CUDA_VISIBLE_DEVICES']='0'
 
 def train(
         save_path,
@@ -65,7 +65,7 @@ def train(
         checkpoint = torch.load(latest_resume, map_location='cpu')
 
         # Load weights to resume from
-        model.load_state_dict(checkpoint['model'])
+        print(model.load_state_dict(checkpoint['model'],strict=False))
         model.cuda().train()
 
 
@@ -143,13 +143,13 @@ def train(
                             optimizer_reid.step()
                             optimizer_reid.zero_grad()
                     else:
-                        loss = losses['loss_box_reg'] + losses['loss_classifier']
+                        loss = losses['loss_box_reg'] + losses['loss_classifier'] + losses['loss_reid']
                         loss.backward()
                         if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
                             optimizer_roi.step()
                             optimizer_roi.zero_grad()
                 elif model.version=='v2':
-                    loss['loss_total'].backward()
+                    losses['loss_total'].backward()
                     if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
                         optimizer_roi.step()
                         optimizer_roi.zero_grad()
