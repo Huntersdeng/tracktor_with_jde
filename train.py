@@ -199,6 +199,7 @@ if __name__ == '__main__':
                         help='Save a checkpoint of model at given interval of epochs')
     parser.add_argument('--train-rpn-stage', action='store_true', help='for training rpn')
     parser.add_argument('--train-reid', action='store_true', help='for training reid')
+    parser.add_argument('--train-box', action='store_true', help='for training box')
     parser.add_argument('--img-size', type=int, default=(960,720), nargs='+', help='pixels')
     parser.add_argument('--resume', action='store_true', help='resume training flag')
     parser.add_argument('--lr', type=float, default=1e-3, help='init lr')
@@ -214,6 +215,7 @@ if __name__ == '__main__':
         save_every=opt.save_model_after,
         train_rpn_stage=opt.train_rpn_stage,
         train_reid=opt.train_reid,
+        train_box=opt.train_box,
         img_size=opt.img_size,
         resume=opt.resume,
         epochs=opt.epochs,
