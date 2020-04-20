@@ -14,7 +14,7 @@ from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
 
 from utils.datasets import LoadImagesAndLabels, collate_fn, JointDataset, letterbox, random_affine
 from utils.scheduler import GradualWarmupScheduler
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 from model import Jde_RCNN
 
 import cv2
@@ -79,7 +79,7 @@ def train(
     optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
     optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
     # optimizer_reid = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
-    after_scheduler_rpn = ReduceLROnPlateau(optimizer_rpn, 'max')
+    after_scheduler_rpn = StepLR(optimizer_rpn, 1, 0.99)
     after_scheduler_roi = ReduceLROnPlateau(optimizer_roi, 'max')
     scheduler_warmup_rpn = GradualWarmupScheduler(optimizer_rpn, multiplier=8, total_epoch=5, after_scheduler=after_scheduler_rpn)
     scheduler_warmup_roi = GradualWarmupScheduler(optimizer_roi, multiplier=8, total_epoch=10, after_scheduler=after_scheduler_roi)
@@ -147,7 +147,7 @@ def train(
             if train_rpn_stage:
                 loss = losses['loss_objectness'] + losses['loss_rpn_box_reg']
                 loss.backward()
-                if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
+                if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader_trainset) - 1):
                     optimizer_rpn.step()
                     optimizer_rpn.zero_grad()
             else:
@@ -158,12 +158,12 @@ def train(
                     else:
                         loss = losses['loss_box_reg'] + losses['loss_classifier'] + losses['loss_reid']
                     loss.backward()
-                    if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
+                    if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader_trainset) - 1):
                         optimizer_roi.step()
                         optimizer_roi.zero_grad()
                 elif model.version=='v2':
                     losses['loss_total'].backward()
-                    if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
+                    if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader_trainset) - 1):
                         optimizer_roi.step()
                         optimizer_roi.zero_grad()
 
@@ -173,15 +173,13 @@ def train(
                 loss_epoch_log[key] = float(val) + loss_epoch_log[key]
         model.cuda().eval()
         with torch.no_grad():
-            if not train_reid:
-                mean_mAP, _, _ = test(model, dataloader_valset, print_interval=100)
-                print('mAP: ', mean_mAP)
-                scheduler_warmup_rpn.step(mean_mAP, epoch)
+            if train_rpn_stage:
+                scheduler_warmup_rpn.step(epoch)
             else:
+                mean_mAP, _, _ = test(model, dataloader_valset, print_interval=100)
                 tar_at_far = test_emb(model, dataloader_valset, print_interval=100)[-1]
-                print('tar_at_far: ', tar_at_far)
-                scheduler_warmup_roi.step(tar_at_far, epoch)
-
+                scheduler_warmup_rpn.step(epoch, mean_mAP+tar_at_far)
+                
         for key, val in loss_epoch_log.items():
             loss_epoch_log[key] =loss_epoch_log[key]/i
         print("loss in epoch %d: "%(epoch))
