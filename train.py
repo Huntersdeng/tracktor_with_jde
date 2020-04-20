@@ -116,7 +116,8 @@ def train(
                                     weight_decay=1e-4)
         # optimizer_reid = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9,
         #                             weight_decay=1e-4)
-
+        scheduler_warmup_rpn = GradualWarmupScheduler(optimizer_rpn, multiplier=8, total_epoch=5)
+        scheduler_warmup_roi = GradualWarmupScheduler(optimizer_roi, multiplier=8, total_epoch=10)
 
     for name in model.roi_heads.state_dict().keys():
         print(name)
@@ -177,10 +178,12 @@ def train(
                 loss_epoch_log[key] = float(val) + loss_epoch_log[key]
 
         if not train_reid:
-            mean_mAP, _, _ = test(weights_path)
+            mean_mAP, _, _ = test(weights_path=weights_path, print_interval=100)
+            print('mAP: ', mean_mAP)
             scheduler_warmup_rpn.step(mean_mAP, epoch)
         else:
-            tar_at_far = test_emb(weights_path)[-1]
+            tar_at_far = test_emb(weights_path=weights_path,print_interval=100)[-1]
+            print('tar_at_far: ', tar_at_far)
             scheduler_warmup_roi.step(tar_at_far, epoch)
 
         for key, val in loss_epoch_log.items():
