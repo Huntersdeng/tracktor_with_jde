@@ -2,6 +2,7 @@ import argparse
 import os.path as osp
 import warnings
 import json
+import yaml
 import time
 from time import gmtime, strftime
 from utils.utils import *
@@ -38,6 +39,12 @@ def train(
     weights_path = osp.join(save_path, model_name)
     loss_log_path = osp.join(weights_path, 'loss.json')
     mkdir_if_missing(weights_path)
+    cfg = {}
+    cfg['width'] = img_size[0]
+    cfg['height'] = img_size[1]
+    cfg['backbone_name'] = opt.backbone_name
+    cfg['lr'] = opt.lr
+    
     if resume:
         latest_resume = osp.join(weights_path, 'latest.pt')
 
@@ -45,10 +52,10 @@ def train(
     # root = '/home/hunter/Document/torch'
     root = '/data/dgw'
 
-    paths = {'CT':'./data/detect/CT_train.txt', 
-             'ETH':'./data/detect/ETH.txt', 'M16':'./data/detect/MOT16_train.txt', 
-             'PRW':'./data/detect/PRW_train.txt', 'CP':'./data/detect/cp_train.txt'}
-    #paths = {'M16':'./data/cp_train.txt'}
+    #paths = {'CT':'./data/detect/CT_train.txt', 
+    #         'ETH':'./data/detect/ETH.txt', 'M16':'./data/detect/MOT16_train.txt', 
+    #         'PRW':'./data/detect/PRW_train.txt', 'CP':'./data/detect/cp_train.txt'}
+    paths = {'M16':'./data/detect/MOT16_train.txt'}
     transforms = T.Compose([T.ToTensor()])
     trainset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
 
@@ -88,6 +95,8 @@ def train(
         del checkpoint  # current, saved
         
     else:
+        with open(os.path.join(weights_path,'model.yaml'), 'w+') as f:
+            yaml.dump(cfg, f)
         model.cuda().train()
 
         # Set optimizer

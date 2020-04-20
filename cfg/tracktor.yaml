@@ -7,7 +7,7 @@ tracktor:
   width: 640
   height: 480
   interpolate: True
-  write_images: True
+  write_images: False
   tracker:
     # FRCNN score threshold for detections
     detection_person_thresh: 0.5
@@ -38,7 +38,7 @@ tracktor:
     # Threshold increment between two iterations (original 0.001)
     termination_eps: 0.00001
     # Use siamese network to do reid
-    do_reid: False
+    do_reid: True
     # How much timesteps dead tracks are kept and cosidered for reid
     inactive_patience: 10
     # How similar do image and old track need to be to be considered the same person

@@ -39,7 +39,7 @@ def test(
     nC = 1
     # model = FRCNN_FPN(num_classes=2)
 
-    model = Jde_RCNN(backbone, num_ID=1129, min_size=img_size[1], max_size=img_size[0])
+    model = Jde_RCNN(backbone, num_ID=cfg['num_ID'], min_size=img_size[1], max_size=img_size[0])
     # model = torch.nn.DataParallel(model)
     checkpoint = torch.load(weights, map_location='cpu')['model']
     # Load weights to resume from
@@ -55,12 +55,13 @@ def test(
         #         'M16':'./data/detect/MOT16_val.txt',
         #         'PRW':'./data/detect/PRW_val.txt',
         #         'CT':'./data/detect/CT_val.txt'}
-        paths = {'M16':'./data/track/train/MOT16-02.txt'}
+        paths = {'M16':'./data/detect/MOT16_val.txt'}
     else:
-        paths = {'CP':'./data/detect/cp_train.txt',
-                'M16':'./data/detect/MOT16_train.txt',
-                'PRW':'./data/detect/PRW_train.txt',
-                'CT':'./data/detect/CT_train.txt'}
+        #paths = {'CP':'./data/detect/cp_train.txt',
+        #        'M16':'./data/detect/MOT16_train.txt',
+        #        'PRW':'./data/detect/PRW_train.txt',
+        #        'CT':'./data/detect/CT_train.txt'}
+        paths = {'M16':'./data/detect/MOT16_train.txt'}
     transforms = T.Compose([T.ToTensor()])
     dataset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
 
@@ -180,7 +181,7 @@ def test_emb(
     backbone = resnet_fpn_backbone(backbone_name, True)
     backbone.out_channels = 256
     nC = 1
-    model = Jde_RCNN(backbone, num_ID=1129, min_size=img_size[1], max_size=img_size[0])
+    model = Jde_RCNN(backbone, num_ID=cfg['num_ID'], min_size=img_size[1], max_size=img_size[0])
     checkpoint = torch.load(weights, map_location='cpu')
     # Load weights to resume from
     print(model.load_state_dict(checkpoint['model'], strict=False))
@@ -192,12 +193,12 @@ def test_emb(
         # paths = {'M16':'./data/detect/MOT16_val.txt',
         #         'CT':'./data/detect/CT_val.txt',
         #         'PRW':'./data/detect/PRW_val.txt'}
-        paths = {'M16':'./data/track/train/MOT16-02.txt'}
+        paths = {'M16':'./data/detect/MOT16_val.txt'}
     else:
-        paths = {'M16':'./data/detect/MOT16_train.txt',
-                'CT':'./data/detect/CT_train.txt',
-                'PRW':'./data/detect/PRW_train.txt'}
-
+        #paths = {'M16':'./data/detect/MOT16_train.txt',
+        #        'CT':'./data/detect/CT_train.txt',
+        #        'PRW':'./data/detect/PRW_train.txt'}
+        paths = {'M16':'./data/detect/MOT16_train.txt'}
     transforms = T.Compose([T.ToTensor()])
     dataset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
 
