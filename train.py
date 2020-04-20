@@ -178,7 +178,7 @@ def train(
                       'model': model.state_dict(),
                       'optimizer_rpn': optimizer_rpn.state_dict(),
                       'optimizer_roi': optimizer_roi.state_dict(),
-                      'optimizer_reid': optimizer_reid.state_dict()}
+                      }
 
         latest = osp.join(weights_path, 'latest.pt')
         torch.save(checkpoint, latest)
