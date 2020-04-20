@@ -14,6 +14,7 @@ from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
 
 from utils.datasets import LoadImagesAndLabels, collate_fn, JointDataset, letterbox, random_affine
 from utils.scheduler import GradualWarmupScheduler
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from model import Jde_RCNN
 
 import cv2
@@ -61,9 +62,12 @@ def train(
     paths_valset = {'M16':'./data/detect/MOT16_val.txt'}
     transforms = T.Compose([T.ToTensor()])
     trainset = JointDataset(root=root, paths=paths_trainset, img_size=img_size, augment=True, transforms=transforms)
+    valset = JointDataset(root=root, paths=paths_valset, img_size=img_size, augment=False, transforms=transforms)
 
-    dataloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True,
+    dataloader_trainset = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True,
                                                 num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate_fn)
+    dataloader_valset = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=True,
+                                                num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate_fn)                                       
     
     cfg['num_ID'] = trainset.nID
     backbone = resnet_fpn_backbone(opt.backbone_name, True)
@@ -72,20 +76,20 @@ def train(
     model = Jde_RCNN(backbone, num_ID=trainset.nID, min_size=img_size[1], max_size=img_size[0], version=opt.model_version)
     # model = torch.nn.DataParallel(model)
     start_epoch = 0
+    optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
+    optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
+    # optimizer_reid = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
+    after_scheduler_rpn = ReduceLROnPlateau(optimizer_rpn, 'max')
+    after_scheduler_roi = ReduceLROnPlateau(optimizer_roi, 'max')
+    scheduler_warmup_rpn = GradualWarmupScheduler(optimizer_rpn, multiplier=8, total_epoch=5, after_scheduler=after_scheduler_rpn)
+    scheduler_warmup_roi = GradualWarmupScheduler(optimizer_roi, multiplier=8, total_epoch=10, after_scheduler=after_scheduler_roi)
     if resume:
         checkpoint = torch.load(latest_resume, map_location='cpu')
 
         # Load weights to resume from
         print(model.load_state_dict(checkpoint['model'],strict=False))
         model.cuda().train()
-
-
         # Set optimizer
-        optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
-        optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
-        # optimizer_reid = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
-        scheduler_warmup_rpn = GradualWarmupScheduler(optimizer_rpn, multiplier=8, total_epoch=5)
-        scheduler_warmup_roi = GradualWarmupScheduler(optimizer_roi, multiplier=8, total_epoch=10)
         start_epoch = checkpoint['epoch'] + 1
         if checkpoint['optimizer_rpn'] is not None:
             optimizer_rpn.load_state_dict(checkpoint['optimizer_rpn'])
@@ -108,15 +112,6 @@ def train(
             yaml.dump(cfg, f)
         model.cuda().train()
 
-        # Set optimizer
-        optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr,
-                                    weight_decay=1e-4)
-        optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr,
-                                    weight_decay=1e-4)
-        # optimizer_reid = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9,
-        #                             weight_decay=1e-4)
-        scheduler_warmup_rpn = GradualWarmupScheduler(optimizer_rpn, multiplier=8, total_epoch=5)
-        scheduler_warmup_roi = GradualWarmupScheduler(optimizer_roi, multiplier=8, total_epoch=10)
 
     for name in model.roi_heads.state_dict().keys():
         print(name)
@@ -132,7 +127,7 @@ def train(
             for i, (name, p) in enumerate(model.roi_heads.named_parameters()):
                 p.requires_grad = False
         loss_epoch_log = dict(loss_total=0, loss_classifier=0, loss_box_reg=0, loss_reid=0, loss_objectness=0, loss_rpn_box_reg=0)
-        for i, (imgs, labels, imgs_path, _, targets_len) in enumerate(dataloader):
+        for i, (imgs, labels, imgs_path, _, targets_len) in enumerate(dataloader_trainset):
             targets = []
             imgs = imgs.cuda()
             labels = labels.cuda()
@@ -177,11 +172,11 @@ def train(
                 loss_epoch_log[key] = float(val) + loss_epoch_log[key]
 
         if not train_reid:
-            mean_mAP, _, _ = test(weights_path=weights_path, batch_size=batch_size, print_interval=100)
+            mean_mAP, _, _ = test(model, dataloader_valset, print_interval=100)
             print('mAP: ', mean_mAP)
             scheduler_warmup_rpn.step(mean_mAP, epoch)
         else:
-            tar_at_far = test_emb(weights_path=weights_path, batch_size=batch_size, print_interval=100)[-1]
+            tar_at_far = test_emb(model, dataloader_valset, print_interval=100)[-1]
             print('tar_at_far: ', tar_at_far)
             scheduler_warmup_roi.step(tar_at_far, epoch)
 

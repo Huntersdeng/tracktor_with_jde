@@ -18,55 +18,15 @@ from utils.datasets import LoadImagesAndLabels, JointDataset, collate_fn
 from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
 
 def test(
-        weights_path,
-        batch_size=16,
+        model,
+        dataloader,
         iou_thres=0.5,
         conf_thres=0.3,
         nms_thres=0.45,
         print_interval=40,
-        test_trainset = False,
-        opt=None
 ):
     
-    with open(os.path.join(weights_path, 'model.yaml'), 'r') as f:
-        cfg = yaml.load(f,Loader=yaml.FullLoader)
-    weights = os.path.join(weights_path, 'latest.pt')
-    img_size = (cfg['width'], cfg['height'])
-    backbone_name = cfg['backbone_name']
-    # Initialize model
-    backbone = resnet_fpn_backbone(backbone_name, True)
-    backbone.out_channels = 256
-    nC = 1
-    # model = FRCNN_FPN(num_classes=2)
-
-    model = Jde_RCNN(backbone, num_ID=cfg['num_ID'], min_size=img_size[1], max_size=img_size[0])
-    # model = torch.nn.DataParallel(model)
-    checkpoint = torch.load(weights, map_location='cpu')['model']
-    # Load weights to resume from
-    print(model.load_state_dict(checkpoint, strict=False))
-    # model.load_state_dict(checkpoint)
-    model.cuda().eval()
-    # model.eval()
-    # Get dataloader
-    root = '/data/dgw'
-    # root = '/home/hunter/Document/torch'
-    if not test_trainset:
-        # paths = {'CP_val':'./data/detect/cp_val.txt',
-        #         'M16':'./data/detect/MOT16_val.txt',
-        #         'PRW':'./data/detect/PRW_val.txt',
-        #         'CT':'./data/detect/CT_val.txt'}
-        paths = {'M16':'./data/detect/MOT16_val.txt'}
-    else:
-        #paths = {'CP':'./data/detect/cp_train.txt',
-        #        'M16':'./data/detect/MOT16_train.txt',
-        #        'PRW':'./data/detect/PRW_train.txt',
-        #        'CT':'./data/detect/CT_train.txt'}
-        paths = {'M16':'./data/detect/MOT16_train.txt'}
-    transforms = T.Compose([T.ToTensor()])
-    dataset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
-
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True,
-                                                num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate_fn)
+    
 
     mean_mAP, mean_R, mean_P, seen = 0.0, 0.0, 0.0, 0
     print('%11s' * 5 % ('Image', 'Total', 'P', 'R', 'mAP'))
@@ -163,51 +123,13 @@ def test(
 
 
 def test_emb(
-            weights_path,
-            batch_size=16,
+            model,
+            dataloader,
             iou_thres=0.5,
             conf_thres=0.3,
             nms_thres=0.45,
             print_interval=40,
-            test_trainset = False,
-            opt=None
 ):
-    with open(os.path.join(weights_path, 'model.yaml'), 'r') as f:
-        cfg = yaml.load(f,Loader=yaml.FullLoader)
-    weights = os.path.join(weights_path, 'latest.pt')
-    img_size = (cfg['width'], cfg['height'])
-    backbone_name = cfg['backbone_name']
-
-    backbone = resnet_fpn_backbone(backbone_name, True)
-    backbone.out_channels = 256
-    nC = 1
-    model = Jde_RCNN(backbone, num_ID=cfg['num_ID'], min_size=img_size[1], max_size=img_size[0])
-    checkpoint = torch.load(weights, map_location='cpu')
-    # Load weights to resume from
-    print(model.load_state_dict(checkpoint['model'], strict=False))
-
-    # Get dataloader
-    root = '/data/dgw'
-    # root = '/home/hunter/Document/torch'
-    if not test_trainset:
-        # paths = {'M16':'./data/detect/MOT16_val.txt',
-        #         'CT':'./data/detect/CT_val.txt',
-        #         'PRW':'./data/detect/PRW_val.txt'}
-        paths = {'M16':'./data/detect/MOT16_val.txt'}
-    else:
-        #paths = {'M16':'./data/detect/MOT16_train.txt',
-        #        'CT':'./data/detect/CT_train.txt',
-        #        'PRW':'./data/detect/PRW_train.txt'}
-        paths = {'M16':'./data/detect/MOT16_train.txt'}
-    transforms = T.Compose([T.ToTensor()])
-    dataset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
-
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True,
-                                                num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate_fn)
-
-    model.cuda().eval()
-    # model.eval()
-
     embedding, id_labels = [], []
     print('Extracting pedestrain features...')
     for batch_i, (imgs, labels, paths, shapes, targets_len) in enumerate(dataloader):
@@ -228,8 +150,7 @@ def test_emb(
         
         if batch_i % print_interval==0:
             print('Extracting {}/{}, # of instances {}, time {:.2f} sec.'.format(batch_i, len(dataloader), len(id_labels), time.time() - t))
-        if batch_i * batch_size > 2000:
-            break
+
     print('Computing pairwise similairity...')
     if len(embedding) <1 :
         return None
@@ -270,27 +191,63 @@ if __name__ == '__main__':
     opt = parser.parse_args()
     print(opt, end='\n\n')
     os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+    weights_path = opt.weights_path
+    with open(os.path.join(weights_path, 'model.yaml'), 'r') as f:
+        cfg = yaml.load(f,Loader=yaml.FullLoader)
+    weights = os.path.join(weights_path, 'latest.pt')
+    img_size = (cfg['width'], cfg['height'])
+    backbone_name = cfg['backbone_name']
+    # Initialize model
+    backbone = resnet_fpn_backbone(backbone_name, True)
+    backbone.out_channels = 256
+    nC = 1
+    # model = FRCNN_FPN(num_classes=2)
+
+    model = Jde_RCNN(backbone, num_ID=cfg['num_ID'], min_size=img_size[1], max_size=img_size[0])
+    # model = torch.nn.DataParallel(model)
+    checkpoint = torch.load(weights, map_location='cpu')['model']
+    # Load weights to resume from
+    print(model.load_state_dict(checkpoint, strict=False))
+    # model.load_state_dict(checkpoint)
+    model.cuda().eval()
+    # model.eval()
+    # Get dataloader
+    root = '/data/dgw'
+    # root = '/home/hunter/Document/torch'
+    if not opt.test_trainset:
+        # paths = {'CP_val':'./data/detect/cp_val.txt',
+        #         'M16':'./data/detect/MOT16_val.txt',
+        #         'PRW':'./data/detect/PRW_val.txt',
+        #         'CT':'./data/detect/CT_val.txt'}
+        paths = {'M16':'./data/detect/MOT16_val.txt'}
+    else:
+        #paths = {'CP':'./data/detect/cp_train.txt',
+        #        'M16':'./data/detect/MOT16_train.txt',
+        #        'PRW':'./data/detect/PRW_train.txt',
+        #        'CT':'./data/detect/CT_train.txt'}
+        paths = {'M16':'./data/detect/MOT16_train.txt'}
+    transforms = T.Compose([T.ToTensor()])
+    dataset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
+
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=opt.batch_size, shuffle=True,
+                                                num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate_fn)
     with torch.no_grad():
         if opt.test_emb:
             res = test_emb(
-                opt.weights_path,
-                opt.batch_size,
+                model,
+                dataloader,
                 opt.iou_thres,
                 opt.conf_thres,
                 opt.nms_thres,
                 opt.print_interval,
-                opt.test_trainset,
-                opt
             )
         else:
             mAP = test(
-                opt.weights_path,
-                opt.batch_size,
+                model,
+                dataloader,
                 opt.iou_thres,
                 opt.conf_thres,
                 opt.nms_thres,
                 opt.print_interval,
-                opt.test_trainset,
-                opt
             )
 
