@@ -110,9 +110,9 @@ def train(
         model.cuda().train()
 
         # Set optimizer
-        optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9,
+        optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr,
                                     weight_decay=1e-4)
-        optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9,
+        optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr,
                                     weight_decay=1e-4)
         # optimizer_reid = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9,
         #                             weight_decay=1e-4)
