@@ -88,7 +88,7 @@ def train(
 
         # Load weights to resume from
         print(model.load_state_dict(checkpoint['model'],strict=False))
-        model.cuda().train()
+        
         # Set optimizer
         start_epoch = checkpoint['epoch'] + 1
         if checkpoint['optimizer_rpn'] is not None:
@@ -110,7 +110,7 @@ def train(
     else:
         with open(os.path.join(weights_path,'model.yaml'), 'w+') as f:
             yaml.dump(cfg, f)
-        model.cuda().train()
+        
 
 
     for name in model.roi_heads.state_dict().keys():
@@ -118,6 +118,7 @@ def train(
 
     for epoch in range(epochs):
         epoch += start_epoch
+        model.cuda().train()
         if not train_rpn_stage:
             for i, (name, p) in enumerate(model.backbone.named_parameters()):
                 p.requires_grad = False
@@ -170,15 +171,16 @@ def train(
 
             for key, val in losses.items():
                 loss_epoch_log[key] = float(val) + loss_epoch_log[key]
-
-        if not train_reid:
-            mean_mAP, _, _ = test(model, dataloader_valset, print_interval=100)
-            print('mAP: ', mean_mAP)
-            scheduler_warmup_rpn.step(mean_mAP, epoch)
-        else:
-            tar_at_far = test_emb(model, dataloader_valset, print_interval=100)[-1]
-            print('tar_at_far: ', tar_at_far)
-            scheduler_warmup_roi.step(tar_at_far, epoch)
+        model.cuda().eval()
+        with torch.no_grad():
+            if not train_reid:
+                mean_mAP, _, _ = test(model, dataloader_valset, print_interval=100)
+                print('mAP: ', mean_mAP)
+                scheduler_warmup_rpn.step(mean_mAP, epoch)
+            else:
+                tar_at_far = test_emb(model, dataloader_valset, print_interval=100)[-1]
+                print('tar_at_far: ', tar_at_far)
+                scheduler_warmup_roi.step(tar_at_far, epoch)
 
         for key, val in loss_epoch_log.items():
             loss_epoch_log[key] =loss_epoch_log[key]/i

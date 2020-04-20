@@ -27,7 +27,7 @@ def test(
 ):
     
     
-
+    nC = 1
     mean_mAP, mean_R, mean_P, seen = 0.0, 0.0, 0.0, 0
     print('%11s' * 5 % ('Image', 'Total', 'P', 'R', 'mAP'))
     outputs, mAPs, mR, mP, TP, confidence, pred_class, target_class, jdict = \
@@ -40,9 +40,9 @@ def test(
         output = []
         for i,o in enumerate(out):
             boxes = xyxy2xywh(o['boxes']).cpu()
-            scores = o['scores'].cpu().reshape(-1,1)
-            labels = o['labels'].cpu().reshape(-1,1)
-            output.append(torch.Tensor(np.concatenate((boxes,scores,scores,labels),axis=1)))
+            scores = o['scores'].cpu().view(-1,1)
+            labels = o['labels'].cpu().view(-1,1).float()
+            output.append(torch.Tensor(torch.cat((boxes,scores,scores,labels),dim=1)))
         output = non_max_suppression(output, conf_thres=conf_thres, nms_thres=nms_thres)
         for i, o in enumerate(output):
             if o is not None:
@@ -200,7 +200,6 @@ if __name__ == '__main__':
     # Initialize model
     backbone = resnet_fpn_backbone(backbone_name, True)
     backbone.out_channels = 256
-    nC = 1
     # model = FRCNN_FPN(num_classes=2)
 
     model = Jde_RCNN(backbone, num_ID=cfg['num_ID'], min_size=img_size[1], max_size=img_size[0])
