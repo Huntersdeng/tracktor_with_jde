@@ -137,6 +137,7 @@ def train(
             losses = model(imgs, targets)
 
             ## two stages training
+            loss = torch.tensor(0).cuda()
             if train_rpn_stage:
                 loss = losses['loss_objectness'] + losses['loss_rpn_box_reg']
                 loss.backward()
@@ -146,17 +147,14 @@ def train(
             else:
                 if model.version=='v1':
                     if train_reid:
-                        loss = losses['loss_reid']
-                        loss.backward()
-                        if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
-                            optimizer_reid.step()
-                            optimizer_reid.zero_grad()
-                    else:
-                        loss = losses['loss_box_reg'] + losses['loss_classifier'] + losses['loss_reid']
-                        loss.backward()
-                        if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
-                            optimizer_roi.step()
-                            optimizer_roi.zero_grad()
+                        loss += losses['loss_reid']
+                        
+                    if train_box:
+                        loss += losses['loss_box_reg'] + losses['loss_classifier']
+                    loss.backward()
+                    if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
+                        optimizer_roi.step()
+                        optimizer_roi.zero_grad()
                 elif model.version=='v2':
                     losses['loss_total'].backward()
                     if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):

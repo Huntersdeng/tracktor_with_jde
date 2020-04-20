@@ -230,8 +230,8 @@ class featureHead(nn.Module):
 
     def forward(self, x):
         x = x.flatten(start_dim=1)
-        x = F.relu(F.dropout(self.fc8(x)),0.7)
-        x = F.relu(F.dropout(self.fc9(x)),0.7)
+        x = F.relu(F.dropout(self.fc8(x)),0.5)
+        x = F.relu(F.dropout(self.fc9(x)),0.5)
         return x
 
 class featureExtractor(nn.Module):
