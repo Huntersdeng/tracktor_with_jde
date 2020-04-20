@@ -57,10 +57,3 @@ class GradualWarmupScheduler(_LRScheduler):
                 return super(GradualWarmupScheduler, self).step(epoch)
         else:
             self.step_ReduceLROnPlateau(metrics, epoch)
-
-if __name__ == '__main__':
-    scheduler_cosine = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, max_epoch)
-    scheduler_warmup = GradualWarmupScheduler(optimizer, multiplier=8, total_epoch=10, after_scheduler=scheduler_cosine)
-
-    for epoch in range(train_epoch):
-        scheduler_warmup.step()     # 10 epoch warmup, after that schedule as scheduler_plateau

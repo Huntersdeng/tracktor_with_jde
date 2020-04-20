@@ -61,7 +61,6 @@ def train(
     paths_valset = {'M16':'./data/detect/MOT16_val.txt'}
     transforms = T.Compose([T.ToTensor()])
     trainset = JointDataset(root=root, paths=paths_trainset, img_size=img_size, augment=True, transforms=transforms)
-    valset = JointDataset(root=root, paths=paths_valset, img_size=img_size, augment=False, transforms=transforms)
 
     dataloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True,
                                                 num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate_fn)
@@ -178,11 +177,11 @@ def train(
                 loss_epoch_log[key] = float(val) + loss_epoch_log[key]
 
         if not train_reid:
-            mean_mAP, _, _ = test(weights_path=weights_path, print_interval=100)
+            mean_mAP, _, _ = test(weights_path=weights_path, batch_size=batch_size, print_interval=100)
             print('mAP: ', mean_mAP)
             scheduler_warmup_rpn.step(mean_mAP, epoch)
         else:
-            tar_at_far = test_emb(weights_path=weights_path,print_interval=100)[-1]
+            tar_at_far = test_emb(weights_path=weights_path, batch_size=batch_size, print_interval=100)[-1]
             print('tar_at_far: ', tar_at_far)
             scheduler_warmup_roi.step(tar_at_far, epoch)
 
