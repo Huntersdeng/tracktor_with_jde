@@ -81,18 +81,19 @@ def train(
         # Set optimizer
         optimizer_rpn = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
         optimizer_roi = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
-        optimizer_reid = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
+        # optimizer_reid = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
 
         start_epoch = checkpoint['epoch'] + 1
-        if checkpoint['optimizer_rpn'] is not None:
-            optimizer_rpn.load_state_dict(checkpoint['optimizer_rpn'])
-        if checkpoint['optimizer_roi'] is not None:
-            optimizer_roi.load_state_dict(checkpoint['optimizer_roi'])
-        try:
-            if checkpoint['optimizer_reid'] is not None:
-                optimizer_reid.load_state_dict(checkpoint['optimizer_reid'])
-        except KeyError:
-            pass
+        if opt.lr<0:
+            if checkpoint['optimizer_rpn'] is not None:
+                optimizer_rpn.load_state_dict(checkpoint['optimizer_rpn'])
+            if checkpoint['optimizer_roi'] is not None:
+                optimizer_roi.load_state_dict(checkpoint['optimizer_roi'])
+            # try:
+            #     if checkpoint['optimizer_reid'] is not None:
+            #         optimizer_reid.load_state_dict(checkpoint['optimizer_reid'])
+            # except KeyError:
+            #     pass
 
         del checkpoint  # current, saved
         
@@ -204,7 +205,7 @@ if __name__ == '__main__':
     parser.add_argument('--train-box', action='store_true', help='for training box')
     parser.add_argument('--img-size', type=int, default=(960,720), nargs='+', help='pixels')
     parser.add_argument('--resume', action='store_true', help='resume training flag')
-    parser.add_argument('--lr', type=float, default=1e-3, help='init lr')
+    parser.add_argument('--lr', type=float, default=-1.0, help='init lr')
     parser.add_argument('--backbone-name', type=str, default='resnet101', help='backbone name')
     parser.add_argument('--model-version', type=str, default='v1', help='model')
     parser.add_argument('--gpu', type=str, default='0', help='which gpu to use')
