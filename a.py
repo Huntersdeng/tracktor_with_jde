@@ -5,9 +5,9 @@ from model import Jde_RCNN
 backbone = resnet_fpn_backbone('resnet50', True)
 backbone.out_channels = 256
 
-model = Jde_RCNN(backbone, num_ID=10, min_size=300, max_size=400, version='v1')
+model = Jde_RCNN(backbone, num_ID=10, min_size=720, max_size=1280, version='v1')
 
-imgs = torch.rand((1,3,300,400))
+imgs = torch.rand((1,3,1280,720))
 boxes = [torch.Tensor([[20,30,40,50]]),torch.Tensor([[20,30,40,50]])]
 print(type(boxes))
 model.eval()
