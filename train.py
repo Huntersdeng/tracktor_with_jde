@@ -26,6 +26,7 @@ def train(
         save_every,
         train_rpn_stage,
         train_reid,
+        train_box,
         img_size=(640,480),
         resume=False,
         epochs=25,
@@ -62,6 +63,7 @@ def train(
     dataloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True,
                                                 num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate_fn)
     
+    cfg['num_ID'] = trainset.nID
     backbone = resnet_fpn_backbone(opt.backbone_name, True)
     backbone.out_channels = 256
 
@@ -137,7 +139,7 @@ def train(
             losses = model(imgs, targets)
 
             ## two stages training
-            loss = torch.tensor(0).cuda()
+            loss = torch.zeros(1).cuda()
             if train_rpn_stage:
                 loss = losses['loss_objectness'] + losses['loss_rpn_box_reg']
                 loss.backward()
