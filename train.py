@@ -6,12 +6,14 @@ import yaml
 import time
 from time import gmtime, strftime
 from utils.utils import *
+from test import test, test_emb
 
 import torch
 from torchvision.transforms import transforms as T
 from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
 
 from utils.datasets import LoadImagesAndLabels, collate_fn, JointDataset, letterbox, random_affine
+from utils.scheduler import GradualWarmupScheduler
 from model import Jde_RCNN
 
 import cv2
@@ -26,7 +28,6 @@ def train(
         save_every,
         train_rpn_stage,
         train_reid,
-        train_box,
         img_size=(640,480),
         resume=False,
         epochs=25,
@@ -56,9 +57,11 @@ def train(
     #paths = {'CT':'./data/detect/CT_train.txt', 
     #         'ETH':'./data/detect/ETH.txt', 'M16':'./data/detect/MOT16_train.txt', 
     #         'PRW':'./data/detect/PRW_train.txt', 'CP':'./data/detect/cp_train.txt'}
-    paths = {'M16':'./data/detect/MOT16_train.txt'}
+    paths_trainset = {'M16':'./data/detect/MOT16_train.txt'}
+    paths_valset = {'M16':'./data/detect/MOT16_val.txt'}
     transforms = T.Compose([T.ToTensor()])
-    trainset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
+    trainset = JointDataset(root=root, paths=paths_trainset, img_size=img_size, augment=True, transforms=transforms)
+    valset = JointDataset(root=root, paths=paths_valset, img_size=img_size, augment=False, transforms=transforms)
 
     dataloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=True,
                                                 num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate_fn)
@@ -79,16 +82,20 @@ def train(
 
 
         # Set optimizer
-        optimizer_rpn = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
-        optimizer_roi = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
+        optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
+        optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
         # optimizer_reid = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
-
+        scheduler_warmup_rpn = GradualWarmupScheduler(optimizer_rpn, multiplier=8, total_epoch=5)
+        scheduler_warmup_roi = GradualWarmupScheduler(optimizer_roi, multiplier=8, total_epoch=10)
         start_epoch = checkpoint['epoch'] + 1
-        if opt.lr<0:
-            if checkpoint['optimizer_rpn'] is not None:
-                optimizer_rpn.load_state_dict(checkpoint['optimizer_rpn'])
-            if checkpoint['optimizer_roi'] is not None:
-                optimizer_roi.load_state_dict(checkpoint['optimizer_roi'])
+        if checkpoint['optimizer_rpn'] is not None:
+            optimizer_rpn.load_state_dict(checkpoint['optimizer_rpn'])
+        if checkpoint['optimizer_roi'] is not None:
+            optimizer_roi.load_state_dict(checkpoint['optimizer_roi'])
+        if checkpoint['scheduler_warmup_rpn'] is not None:
+            scheduler_warmup_rpn.load_state_dict(checkpoint['scheduler_warmup_rpn'])
+        if checkpoint['scheduler_warmup_roi'] is not None:
+            scheduler_warmup_roi.load_state_dict(checkpoint['scheduler_warmup_roi'])
             # try:
             #     if checkpoint['optimizer_reid'] is not None:
             #         optimizer_reid.load_state_dict(checkpoint['optimizer_reid'])
@@ -103,12 +110,12 @@ def train(
         model.cuda().train()
 
         # Set optimizer
-        optimizer_roi = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9,
+        optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9,
                                     weight_decay=1e-4)
-        optimizer_rpn = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9,
+        optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9,
                                     weight_decay=1e-4)
-        optimizer_reid = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9,
-                                    weight_decay=1e-4)
+        # optimizer_reid = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9,
+        #                             weight_decay=1e-4)
 
 
     for name in model.roi_heads.state_dict().keys():
@@ -140,7 +147,7 @@ def train(
             losses = model(imgs, targets)
 
             ## two stages training
-            loss = torch.zeros(1).cuda()
+
             if train_rpn_stage:
                 loss = losses['loss_objectness'] + losses['loss_rpn_box_reg']
                 loss.backward()
@@ -150,10 +157,10 @@ def train(
             else:
                 if model.version=='v1':
                     if train_reid:
-                        loss += losses['loss_reid']
+                        loss = losses['loss_reid']
                         
-                    if train_box:
-                        loss += losses['loss_box_reg'] + losses['loss_classifier']
+                    else:
+                        loss = losses['loss_box_reg'] + losses['loss_classifier'] + losses['loss_reid']
                     loss.backward()
                     if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader) - 1):
                         optimizer_roi.step()
@@ -168,7 +175,14 @@ def train(
 
             for key, val in losses.items():
                 loss_epoch_log[key] = float(val) + loss_epoch_log[key]
-            
+
+        if not train_reid:
+            mean_mAP, _, _ = test(weights_path)
+            scheduler_warmup_rpn.step(mean_mAP, epoch)
+        else:
+            tar_at_far = test_emb(weights_path)[-1]
+            scheduler_warmup_roi.step(tar_at_far, epoch)
+
         for key, val in loss_epoch_log.items():
             loss_epoch_log[key] =loss_epoch_log[key]/i
         print("loss in epoch %d: "%(epoch))
@@ -179,6 +193,8 @@ def train(
                       'model': model.state_dict(),
                       'optimizer_rpn': optimizer_rpn.state_dict(),
                       'optimizer_roi': optimizer_roi.state_dict(),
+                      'scheduler_warmup_rpn':scheduler_warmup_rpn.state_dict(),
+                      'scheduler_warmup_roi':scheduler_warmup_roi.state_dict()
                       }
 
         latest = osp.join(weights_path, 'latest.pt')
@@ -202,7 +218,6 @@ if __name__ == '__main__':
                         help='Save a checkpoint of model at given interval of epochs')
     parser.add_argument('--train-rpn-stage', action='store_true', help='for training rpn')
     parser.add_argument('--train-reid', action='store_true', help='for training reid')
-    parser.add_argument('--train-box', action='store_true', help='for training box')
     parser.add_argument('--img-size', type=int, default=(960,720), nargs='+', help='pixels')
     parser.add_argument('--resume', action='store_true', help='resume training flag')
     parser.add_argument('--lr', type=float, default=-1.0, help='init lr')
@@ -218,7 +233,6 @@ if __name__ == '__main__':
         save_every=opt.save_model_after,
         train_rpn_stage=opt.train_rpn_stage,
         train_reid=opt.train_reid,
-        train_box=opt.train_box,
         img_size=opt.img_size,
         resume=opt.resume,
         epochs=opt.epochs,
