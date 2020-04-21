@@ -123,9 +123,11 @@ def train(
                 p.requires_grad = False
             for i, (name, p) in enumerate(model.rpn.named_parameters()):
                 p.requires_grad = False
+            print('lr: ', optimizer_rpn.param_groups[-1]['lr'])
         else:
             for i, (name, p) in enumerate(model.roi_heads.named_parameters()):
                 p.requires_grad = False
+            print('lr: ', optimizer_roi.param_groups[-1]['lr'])
         loss_epoch_log = dict(loss_total=0, loss_classifier=0, loss_box_reg=0, loss_reid=0, loss_objectness=0, loss_rpn_box_reg=0)
         for i, (imgs, labels, imgs_path, _, targets_len) in enumerate(tqdm(dataloader_trainset)):
             targets = []
@@ -152,6 +154,7 @@ def train(
                 
                 loss.backward()
                 if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader_trainset) - 1):
+                    
                     optimizer_rpn.step()
                     optimizer_rpn.zero_grad()
             else:
@@ -164,6 +167,7 @@ def train(
                     
                     loss.backward()
                     if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader_trainset) - 1):
+                        
                         optimizer_roi.step()
                         optimizer_roi.zero_grad()
                 elif model.version=='v2':
@@ -194,7 +198,7 @@ def train(
         checkpoint = {'epoch': epoch,
                       'model': model.state_dict(),
                       'optimizer_rpn': optimizer_rpn.state_dict(),
-                      'optimizer_roi': optimizer_roi.state_dict()
+                      'optimizer_roi': optimizer_roi.state_dict(),
                       'scheduler_warmup_rpn':scheduler_warmup_rpn.state_dict(),
                       'scheduler_warmup_roi':scheduler_warmup_roi.state_dict()
                       }
