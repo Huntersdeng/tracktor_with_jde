@@ -7,7 +7,7 @@ import time
 from time import gmtime, strftime
 from utils.utils import *
 from test import test, test_emb
-
+from tqdm import tqdm
 import torch
 from torchvision.transforms import transforms as T
 from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
@@ -84,7 +84,7 @@ def train(
     scheduler_warmup_rpn = GradualWarmupScheduler(optimizer_rpn, multiplier=8, total_epoch=5, after_scheduler=after_scheduler_rpn)
     scheduler_warmup_roi = GradualWarmupScheduler(optimizer_roi, multiplier=8, total_epoch=10, after_scheduler=after_scheduler_roi)
     if resume:
-        checkpoint = torch.load(latest_resume, map_location='cpu')
+        checkpoint = torch.load(latest_resume)
 
         # Load weights to resume from
         print(model.load_state_dict(checkpoint['model'],strict=False))
@@ -128,7 +128,7 @@ def train(
             for i, (name, p) in enumerate(model.roi_heads.named_parameters()):
                 p.requires_grad = False
         loss_epoch_log = dict(loss_total=0, loss_classifier=0, loss_box_reg=0, loss_reid=0, loss_objectness=0, loss_rpn_box_reg=0)
-        for i, (imgs, labels, imgs_path, _, targets_len) in enumerate(dataloader_trainset):
+        for i, (imgs, labels, imgs_path, _, targets_len) in enumerate(tqdm(dataloader_trainset)):
             targets = []
             imgs = imgs.cuda()
             labels = labels.cuda()
@@ -178,7 +178,7 @@ def train(
             else:
                 mean_mAP, _, _ = test(model, dataloader_valset, print_interval=100)
                 tar_at_far = test_emb(model, dataloader_valset, print_interval=100)[-1]
-                scheduler_warmup_rpn.step(epoch, mean_mAP+tar_at_far)
+                scheduler_warmup_roi.step(epoch, mean_mAP+tar_at_far)
                 
         for key, val in loss_epoch_log.items():
             loss_epoch_log[key] =loss_epoch_log[key]/i

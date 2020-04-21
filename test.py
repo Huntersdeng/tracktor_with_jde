@@ -6,7 +6,7 @@ from functools import reduce
 import numpy as np
 import os
 import yaml
-
+from tqdm import tqdm
 from sklearn import metrics
 from scipy import interpolate
 import torch
@@ -33,7 +33,7 @@ def test(
     outputs, mAPs, mR, mP, TP, confidence, pred_class, target_class, jdict = \
         [], [], [], [], [], [], [], [], []
     AP_accum, AP_accum_count = np.zeros(nC), np.zeros(nC)
-    for batch_i, (imgs, targets, paths, shapes, targets_len) in enumerate(dataloader):
+    for batch_i, (imgs, targets, paths, shapes, targets_len) in enumerate(tqdm(dataloader)):
         t = time.time()
         out = model(imgs.cuda())
         # out = model(imgs)
@@ -132,7 +132,7 @@ def test_emb(
 ):
     embedding, id_labels = [], []
     print('Extracting pedestrain features...')
-    for batch_i, (imgs, labels, paths, shapes, targets_len) in enumerate(dataloader):
+    for batch_i, (imgs, labels, paths, shapes, targets_len) in enumerate(tqdm(dataloader)):
         t = time.time()
         boxes = []
         imgs = imgs.cuda()
