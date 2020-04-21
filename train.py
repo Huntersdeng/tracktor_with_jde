@@ -79,7 +79,7 @@ def train(
     # model = torch.nn.DataParallel(model)
     start_epoch = 0
     optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, betas=(0.9,0.999), weight_decay=5e-4)
-    optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, betas=(0.9,0.999), weight_decay=5e-4)
+    optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.roi_heads.parameters()), lr=opt.lr, betas=(0.9,0.999), weight_decay=5e-4)
     # optimizer_reid = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
     after_scheduler_rpn = StepLR(optimizer_rpn, 1, 0.99)
     after_scheduler_roi = ReduceLROnPlateau(optimizer_roi, 'max')
@@ -123,11 +123,11 @@ def train(
                 p.requires_grad = False
             for i, (name, p) in enumerate(model.rpn.named_parameters()):
                 p.requires_grad = False
-            print('lr: ', optimizer_rpn.param_groups[-1]['lr'])
+            print('lr: ', optimizer_rpn.param_groups[0]['lr'])
         else:
             for i, (name, p) in enumerate(model.roi_heads.named_parameters()):
                 p.requires_grad = False
-            print('lr: ', optimizer_roi.param_groups[-1]['lr'])
+            print('lr: ', optimizer_roi.param_groups[0]['lr'])
         loss_epoch_log = dict(loss_total=0, loss_classifier=0, loss_box_reg=0, loss_reid=0, loss_objectness=0, loss_rpn_box_reg=0)
         for i, (imgs, labels, imgs_path, _, targets_len) in enumerate(tqdm(dataloader_trainset)):
             targets = []
