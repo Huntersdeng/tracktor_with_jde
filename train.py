@@ -76,29 +76,30 @@ def train(
     model = Jde_RCNN(backbone, num_ID=trainset.nID, min_size=img_size[1], max_size=img_size[0], version=opt.model_version)
     # model = torch.nn.DataParallel(model)
     start_epoch = 0
-    optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
-    optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
+    optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, weight_decay=5e-4)
+    optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, weight_decay=5e-4)
     # optimizer_reid = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
-    
+    # after_scheduler_rpn = StepLR(optimizer_rpn, 1, 0.99)
+    # after_scheduler_roi = ReduceLROnPlateau(optimizer_roi, 'max')
+
+    # scheduler_warmup_rpn = GradualWarmupScheduler(optimizer_rpn, multiplier=8, total_epoch=5, after_scheduler=after_scheduler_rpn)
+    # scheduler_warmup_roi = GradualWarmupScheduler(optimizer_roi, multiplier=8, total_epoch=10, after_scheduler=after_scheduler_roi)
     if resume:
         checkpoint = torch.load(latest_resume)
 
         # Load weights to resume from
         print(model.load_state_dict(checkpoint['model'],strict=False))
-        after_scheduler_rpn = StepLR(optimizer_rpn, 1, 0.99)
-        after_scheduler_roi = ReduceLROnPlateau(optimizer_roi, 'max')
-        scheduler_warmup_rpn = GradualWarmupScheduler(optimizer_rpn, multiplier=8, total_epoch=5, after_scheduler=after_scheduler_rpn)
-        scheduler_warmup_roi = GradualWarmupScheduler(optimizer_roi, multiplier=8, total_epoch=10, after_scheduler=after_scheduler_roi)
+        
         # Set optimizer
         start_epoch = checkpoint['epoch'] + 1
         if checkpoint['optimizer_rpn'] is not None:
             optimizer_rpn.load_state_dict(checkpoint['optimizer_rpn'])
         if checkpoint['optimizer_roi'] is not None:
             optimizer_roi.load_state_dict(checkpoint['optimizer_roi'])
-        if checkpoint['scheduler_warmup_rpn'] is not None:
-            scheduler_warmup_rpn.load_state_dict(checkpoint['scheduler_warmup_rpn'])
-        if checkpoint['scheduler_warmup_roi'] is not None:
-            scheduler_warmup_roi.load_state_dict(checkpoint['scheduler_warmup_roi'])
+        # if checkpoint['scheduler_warmup_rpn'] is not None:
+        #     scheduler_warmup_rpn.load_state_dict(checkpoint['scheduler_warmup_rpn'])
+        # if checkpoint['scheduler_warmup_roi'] is not None:
+        #     scheduler_warmup_roi.load_state_dict(checkpoint['scheduler_warmup_roi'])
             # try:
             #     if checkpoint['optimizer_reid'] is not None:
             #         optimizer_reid.load_state_dict(checkpoint['optimizer_reid'])
@@ -108,17 +109,9 @@ def train(
         del checkpoint  # current, saved
         
     else:
-        after_scheduler_rpn = StepLR(optimizer_rpn, 1, 0.99)
-        after_scheduler_roi = ReduceLROnPlateau(optimizer_roi, 'max')
-        scheduler_warmup_rpn = GradualWarmupScheduler(optimizer_rpn, multiplier=8, total_epoch=5, after_scheduler=after_scheduler_rpn)
-        scheduler_warmup_roi = GradualWarmupScheduler(optimizer_roi, multiplier=8, total_epoch=10, after_scheduler=after_scheduler_roi)
         with open(os.path.join(weights_path,'model.yaml'), 'w+') as f:
             yaml.dump(cfg, f)
         
-
-
-    for name in model.roi_heads.state_dict().keys():
-        print(name)
 
     for epoch in range(epochs):
         epoch += start_epoch
@@ -176,13 +169,13 @@ def train(
             for key, val in losses.items():
                 loss_epoch_log[key] = float(val) + loss_epoch_log[key]
         model.cuda().eval()
-        with torch.no_grad():
-            if train_rpn_stage:
-                scheduler_warmup_rpn.step(epoch)
-            else:
-                mean_mAP, _, _ = test(model, dataloader_valset, print_interval=100)
-                tar_at_far = test_emb(model, dataloader_valset, print_interval=100)[-1]
-                scheduler_warmup_roi.step(epoch, mean_mAP+tar_at_far)
+        # with torch.no_grad():
+        #     if train_rpn_stage:
+        #         scheduler_warmup_rpn.step(epoch, None)
+        #     else:
+        #         mean_mAP, _, _ = test(model, dataloader_valset, print_interval=100)
+        #         tar_at_far = test_emb(model, dataloader_valset, print_interval=100)[-1]
+        #         scheduler_warmup_roi.step(epoch, mean_mAP+tar_at_far)
                 
         for key, val in loss_epoch_log.items():
             loss_epoch_log[key] =loss_epoch_log[key]/i
