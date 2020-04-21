@@ -75,6 +75,7 @@ def train(
     backbone.out_channels = 256
 
     model = Jde_RCNN(backbone, num_ID=trainset.nID, min_size=img_size[1], max_size=img_size[0], version=opt.model_version)
+    model.cuda().train()
     # model = torch.nn.DataParallel(model)
     start_epoch = 0
     optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, betas=(0.9,0.999), weight_decay=5e-4)
@@ -86,7 +87,7 @@ def train(
     # scheduler_warmup_rpn = GradualWarmupScheduler(optimizer_rpn, multiplier=8, total_epoch=5, after_scheduler=after_scheduler_rpn)
     # scheduler_warmup_roi = GradualWarmupScheduler(optimizer_roi, multiplier=8, total_epoch=10, after_scheduler=after_scheduler_roi)
     if resume:
-        checkpoint = torch.load(latest_resume, map_location='cpu')
+        checkpoint = torch.load(latest_resume, map_location='cuda:0')
 
         # Load weights to resume from
         print(model.load_state_dict(checkpoint['model'],strict=False))
@@ -130,14 +131,18 @@ def train(
             targets = []
             imgs = imgs.cuda()
             labels = labels.cuda()
+            flag = False
             for target_len, label in zip(np.squeeze(targets_len), labels):
                 ## convert the input to demanded format
                 target = {}
+                if target_len==0:
+                    flag = True
                 target['boxes'] = label[0:int(target_len), 2:6]
                 target['ids'] = (label[0:int(target_len), 1]).long()
                 target['labels'] = torch.ones_like(target['ids'])
                 targets.append(target)
-            
+            if flag:
+                break
             losses = model(imgs, targets)
 
             ## two stages training
