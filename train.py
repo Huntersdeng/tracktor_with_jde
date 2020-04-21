@@ -23,6 +23,7 @@ import numpy as np
 
 warnings.filterwarnings('ignore')
 
+@torchsnooper.snoop()
 def train(
         save_path,
         save_every,
