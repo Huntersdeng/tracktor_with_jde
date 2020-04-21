@@ -186,9 +186,9 @@ def train(
         checkpoint = {'epoch': epoch,
                       'model': model.state_dict(),
                       'optimizer_rpn': optimizer_rpn.state_dict(),
-                      'optimizer_roi': optimizer_roi.state_dict(),
-                      'scheduler_warmup_rpn':scheduler_warmup_rpn.state_dict(),
-                      'scheduler_warmup_roi':scheduler_warmup_roi.state_dict()
+                      'optimizer_roi': optimizer_roi.state_dict()
+                    #   'scheduler_warmup_rpn':scheduler_warmup_rpn.state_dict(),
+                    #   'scheduler_warmup_roi':scheduler_warmup_roi.state_dict()
                       }
 
         latest = osp.join(weights_path, 'latest.pt')
