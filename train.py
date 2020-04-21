@@ -168,7 +168,7 @@ def train(
 
             for key, val in losses.items():
                 loss_epoch_log[key] = float(val) + loss_epoch_log[key]
-        model.cuda().eval()
+        # model.cuda().eval()
         # with torch.no_grad():
         #     if train_rpn_stage:
         #         scheduler_warmup_rpn.step(epoch, None)
