@@ -118,6 +118,16 @@ def train(
     last_tar = 0
     for epoch in range(epochs):
         epoch += start_epoch
+        model.cuda().eval()
+        with torch.no_grad():
+            if train_rpn_stage:
+                scheduler_warmup_rpn.step(epoch, None)
+                print(scheduler_warmup_rpn.get_lr())
+            else:
+                mean_mAP, _, _ = test(model, dataloader_valset, print_interval=100)
+                tar_at_far = test_emb(model, dataloader_valset, print_interval=100)[-1]
+                scheduler_warmup_roi.step(epoch, mean_mAP+tar_at_far)
+                print(scheduler_warmup_roi.get_lr())
         model.cuda().train()
         if not train_rpn_stage:
             for i, (name, p) in enumerate(model.backbone.named_parameters()):
@@ -181,16 +191,7 @@ def train(
 
             for key, val in losses.items():
                 loss_epoch_log[key] = float(val) + loss_epoch_log[key]
-        model.cuda().eval()
-        with torch.no_grad():
-            if train_rpn_stage:
-                scheduler_warmup_rpn.step(epoch, None)
-                print(scheduler_warmup_rpn.get_lr())
-            else:
-                mean_mAP, _, _ = test(model, dataloader_valset, print_interval=100)
-                tar_at_far = test_emb(model, dataloader_valset, print_interval=100)[-1]
-                scheduler_warmup_roi.step(epoch, mean_mAP+tar_at_far)
-                print(scheduler_warmup_roi.get_lr())
+        
                 
         for key, val in loss_epoch_log.items():
             loss_epoch_log[key] =loss_epoch_log[key]/i
