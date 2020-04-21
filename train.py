@@ -76,8 +76,8 @@ def train(
     model = Jde_RCNN(backbone, num_ID=trainset.nID, min_size=img_size[1], max_size=img_size[0], version=opt.model_version)
     # model = torch.nn.DataParallel(model)
     start_epoch = 0
-    optimizer_rpn = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, betas=(0.9,0.999))
-    optimizer_roi = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, betas=(0.9,0.999))
+    optimizer_rpn = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=0.9)
+    optimizer_roi = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=0.9)
     # optimizer_reid = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
     after_scheduler_rpn = StepLR(optimizer_rpn, 1, 0.99)
     after_scheduler_roi = ReduceLROnPlateau(optimizer_roi, 'max')
