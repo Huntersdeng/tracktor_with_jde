@@ -22,7 +22,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 warnings.filterwarnings('ignore')
-os.environ['CUDA_VISIBLE_DEVICES']='0'
 
 def train(
         save_path,
@@ -85,7 +84,7 @@ def train(
     scheduler_warmup_rpn = GradualWarmupScheduler(optimizer_rpn, multiplier=8, total_epoch=5, after_scheduler=after_scheduler_rpn)
     scheduler_warmup_roi = GradualWarmupScheduler(optimizer_roi, multiplier=8, total_epoch=10, after_scheduler=after_scheduler_roi)
     if resume:
-        checkpoint = torch.load(latest_resume)
+        checkpoint = torch.load(latest_resume, map_location='cpu')
 
         # Load weights to resume from
         print(model.load_state_dict(checkpoint['model'],strict=False))
