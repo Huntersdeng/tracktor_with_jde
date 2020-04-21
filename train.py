@@ -24,7 +24,7 @@ import numpy as np
 
 warnings.filterwarnings('ignore')
 
-@torchsnooper.snoop()
+
 def train(
         save_path,
         save_every,
@@ -144,6 +144,7 @@ def train(
 
             if train_rpn_stage:
                 loss = 0.4*losses['loss_objectness'] + 2*losses['loss_rpn_box_reg']
+                
                 loss.backward()
                 if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader_trainset) - 1):
                     optimizer_rpn.step()
@@ -155,6 +156,7 @@ def train(
                         
                     else:
                         loss = 2*losses['loss_box_reg'] + 0.4*losses['loss_classifier'] + losses['loss_reid']
+                    
                     loss.backward()
                     if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader_trainset) - 1):
                         optimizer_roi.step()
