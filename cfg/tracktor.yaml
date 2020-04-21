@@ -2,10 +2,10 @@ tracktor:
   backbone: resnet101
   num_ID: 126
   version: 'v1'
-  weights: ../weights/training/1/resnet101_img_size960_540/latest.pt
+  weights: ../weights/training/1/resnet101_img_size800_450/latest.pt
   dataset: ./data/track/train
-  width: 960
-  height: 540
+  width: 800
+  height: 450
   interpolate: True
   write_images: False
   tracker:
@@ -19,7 +19,7 @@ tracktor:
     regression_nms_thresh: 0.6
     # motion model settings
     motion_model:
-      enabled: False
+      enabled: True
       # average velocity over last n_steps steps
       n_steps: 1
       # if true, only model the movement of the bounding box center. If false, width and height are also modeled.
@@ -38,10 +38,10 @@ tracktor:
     # Threshold increment between two iterations (original 0.001)
     termination_eps: 0.00001
     # Use siamese network to do reid
-    do_reid: False
+    do_reid: True
     # How much timesteps dead tracks are kept and cosidered for reid
     inactive_patience: 10
     # How similar do image and old track need to be to be considered the same person
-    reid_sim_threshold: 2.0
+    reid_sim_threshold: 1.0
     # How much IoU do track and image need to be considered for matching
-    reid_iou_threshold: 0.2
+    reid_iou_threshold: 0.1
