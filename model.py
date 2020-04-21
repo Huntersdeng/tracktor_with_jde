@@ -26,7 +26,7 @@ class Jde_RCNN(GeneralizedRCNN):
                  rpn_pre_nms_top_n_train=2000, rpn_pre_nms_top_n_test=1000,
                  rpn_post_nms_top_n_train=2000, rpn_post_nms_top_n_test=1000,
                  rpn_nms_thresh=0.7,
-                 rpn_fg_iou_thresh=0.5, rpn_bg_iou_thresh=0.4,
+                 rpn_fg_iou_thresh=0.7, rpn_bg_iou_thresh=0.3,
                  rpn_batch_size_per_image=256, rpn_positive_fraction=0.5,
                  # Box parameters
                  box_roi_pool=None, box_head=None, box_predictor=None,
@@ -71,7 +71,7 @@ class Jde_RCNN(GeneralizedRCNN):
         if box_roi_pool is None:
             box_roi_pool = MultiScaleRoIAlign(
                 featmap_names=[0, 1, 2, 3],
-                output_size=7,
+                output_size=11,
                 sampling_ratio=2)
 
         if box_head is None:
