@@ -79,16 +79,16 @@ def train(
     optimizer_rpn = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
     optimizer_roi = torch.optim.Adam(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr)
     # optimizer_reid = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
-    after_scheduler_rpn = StepLR(optimizer_rpn, 1, 0.99)
-    after_scheduler_roi = ReduceLROnPlateau(optimizer_roi, 'max')
-    scheduler_warmup_rpn = GradualWarmupScheduler(optimizer_rpn, multiplier=8, total_epoch=5, after_scheduler=after_scheduler_rpn)
-    scheduler_warmup_roi = GradualWarmupScheduler(optimizer_roi, multiplier=8, total_epoch=10, after_scheduler=after_scheduler_roi)
+    
     if resume:
         checkpoint = torch.load(latest_resume)
 
         # Load weights to resume from
         print(model.load_state_dict(checkpoint['model'],strict=False))
-        
+        after_scheduler_rpn = StepLR(optimizer_rpn, 1, 0.99)
+        after_scheduler_roi = ReduceLROnPlateau(optimizer_roi, 'max')
+        scheduler_warmup_rpn = GradualWarmupScheduler(optimizer_rpn, multiplier=8, total_epoch=5, after_scheduler=after_scheduler_rpn)
+        scheduler_warmup_roi = GradualWarmupScheduler(optimizer_roi, multiplier=8, total_epoch=10, after_scheduler=after_scheduler_roi)
         # Set optimizer
         start_epoch = checkpoint['epoch'] + 1
         if checkpoint['optimizer_rpn'] is not None:
@@ -108,6 +108,10 @@ def train(
         del checkpoint  # current, saved
         
     else:
+        after_scheduler_rpn = StepLR(optimizer_rpn, 1, 0.99)
+        after_scheduler_roi = ReduceLROnPlateau(optimizer_roi, 'max')
+        scheduler_warmup_rpn = GradualWarmupScheduler(optimizer_rpn, multiplier=8, total_epoch=5, after_scheduler=after_scheduler_rpn)
+        scheduler_warmup_roi = GradualWarmupScheduler(optimizer_roi, multiplier=8, total_epoch=10, after_scheduler=after_scheduler_roi)
         with open(os.path.join(weights_path,'model.yaml'), 'w+') as f:
             yaml.dump(cfg, f)
         
@@ -145,7 +149,7 @@ def train(
             ## two stages training
 
             if train_rpn_stage:
-                loss = losses['loss_objectness'] + losses['loss_rpn_box_reg']
+                loss = losses['loss_objectness'] + 5*losses['loss_rpn_box_reg']
                 loss.backward()
                 if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader_trainset) - 1):
                     optimizer_rpn.step()
@@ -156,7 +160,7 @@ def train(
                         loss = losses['loss_reid']
                         
                     else:
-                        loss = losses['loss_box_reg'] + losses['loss_classifier'] + losses['loss_reid']
+                        loss = 5*losses['loss_box_reg'] + losses['loss_classifier'] + losses['loss_reid']
                     loss.backward()
                     if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader_trainset) - 1):
                         optimizer_roi.step()
