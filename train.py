@@ -9,6 +9,7 @@ from utils.utils import *
 from test import test, test_emb
 from tqdm import tqdm
 import torch
+import torchsnooper
 from torchvision.transforms import transforms as T
 from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
 
