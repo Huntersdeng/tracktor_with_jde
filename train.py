@@ -79,7 +79,7 @@ def train(
     # model = torch.nn.DataParallel(model)
     start_epoch = 0
     optimizer_rpn = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9, weight_decay=5e-4)
-    optimizer_roi = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9, weight_decay=5e-4)
+    optimizer_roi = torch.optim.SGD(filter(lambda x: x.requires_grad, model.roi_heads.parameters()), lr=opt.lr, momentum=.9, weight_decay=5e-4)
     # optimizer_reid = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
     after_scheduler_rpn = StepLR(optimizer_rpn, 1, 0.99)
     after_scheduler_roi = ReduceLROnPlateau(optimizer_roi, 'max')
