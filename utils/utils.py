@@ -990,7 +990,7 @@ def evaluate_mot_accums(accums, names, generate_overall=False):
         namemap=mm.io.motchallenge_metric_names,)
     print(str_summary)
 
-def write_results(self, seq, all_tracks, output_dir):
+def write_results(seq, all_tracks, output_dir):
         """Write the tracks in the format for MOT16/MOT17 sumbission
 
         all_tracks: dictionary with 1 dictionary for every track with {..., i:np.array([x1,y1,x2,y2]), ...} at key track_num
