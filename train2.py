@@ -15,7 +15,7 @@ from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
 from utils.datasets import LoadImagesAndLabels, collate_fn, JointDataset, letterbox, random_affine
 from utils.scheduler import GradualWarmupScheduler
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
-from model2 import Jde_RCNN
+from model import Jde_RCNN
 
 import cv2
 import matplotlib.pyplot as plt
