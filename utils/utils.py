@@ -1,7 +1,7 @@
 #########################################
 # Still ugly file with helper functions #
 #########################################
-
+import csv
 import os
 from collections import defaultdict
 from os import path as osp
