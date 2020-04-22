@@ -16,7 +16,7 @@ from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
 from utils.datasets import LoadImagesAndLabels, collate_fn, JointDataset, letterbox, random_affine
 from utils.scheduler import GradualWarmupScheduler
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
-from model import Jde_RCNN
+from model2 import Jde_RCNN
 
 import cv2
 import matplotlib.pyplot as plt
@@ -76,6 +76,8 @@ def train(
 
     model = Jde_RCNN(backbone, num_ID=trainset.nID, min_size=img_size[1], max_size=img_size[0], version=opt.model_version)
     model.cuda().train()
+    for i, (name, p) in enumerate(model.backbone.named_parameters()):
+        p.requires_grad = False
     # model = torch.nn.DataParallel(model)
     start_epoch = 0
     optimizer_rpn = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9, weight_decay=5e-4)
@@ -94,14 +96,14 @@ def train(
         
         # Set optimizer
         start_epoch = checkpoint['epoch'] + 1
-        if checkpoint['optimizer_rpn'] is not None:
-            optimizer_rpn.load_state_dict(checkpoint['optimizer_rpn'])
-        if checkpoint['optimizer_roi'] is not None:
-            optimizer_roi.load_state_dict(checkpoint['optimizer_roi'])
-        if checkpoint['scheduler_warmup_rpn'] is not None:
-           scheduler_warmup_rpn.load_state_dict(checkpoint['scheduler_warmup_rpn'])
-        if checkpoint['scheduler_warmup_roi'] is not None:
-           scheduler_warmup_roi.load_state_dict(checkpoint['scheduler_warmup_roi'])
+        #if checkpoint['optimizer_rpn'] is not None:
+        #    optimizer_rpn.load_state_dict(checkpoint['optimizer_rpn'])
+        #if checkpoint['optimizer_roi'] is not None:
+        #    optimizer_roi.load_state_dict(checkpoint['optimizer_roi'])
+        #if checkpoint['scheduler_warmup_rpn'] is not None:
+        #   scheduler_warmup_rpn.load_state_dict(checkpoint['scheduler_warmup_rpn'])
+        #if checkpoint['scheduler_warmup_roi'] is not None:
+        #   scheduler_warmup_roi.load_state_dict(checkpoint['scheduler_warmup_roi'])
             # try:
             #     if checkpoint['optimizer_reid'] is not None:
             #         optimizer_reid.load_state_dict(checkpoint['optimizer_reid'])
@@ -118,10 +120,19 @@ def train(
     last_tar = 0
     for epoch in range(epochs):
         epoch += start_epoch
+        model.cuda().eval()
+        with torch.no_grad():
+            if train_rpn_stage:
+                scheduler_warmup_rpn.step(epoch, None)
+                print(scheduler_warmup_rpn.get_lr())
+            else:
+                #mean_mAP, _, _ = test(model, dataloader_valset, print_interval=100)
+                tar_at_far = test_emb(model, dataloader_valset, print_interval=100)[-1]
+                scheduler_warmup_roi.step(epoch, None)
+                print(scheduler_warmup_roi.get_lr())
+
         model.cuda().train()
         if not train_rpn_stage:
-            for i, (name, p) in enumerate(model.backbone.named_parameters()):
-                p.requires_grad = False
             for i, (name, p) in enumerate(model.rpn.named_parameters()):
                 p.requires_grad = False
             print('lr: ', optimizer_roi.param_groups[0]['lr'])
@@ -181,16 +192,6 @@ def train(
 
             for key, val in losses.items():
                 loss_epoch_log[key] = float(val) + loss_epoch_log[key]
-        model.cuda().eval()
-        with torch.no_grad():
-            if train_rpn_stage:
-                scheduler_warmup_rpn.step(epoch, None)
-                print(scheduler_warmup_rpn.get_lr())
-            else:
-                mean_mAP, _, _ = test(model, dataloader_valset, print_interval=100)
-                tar_at_far = test_emb(model, dataloader_valset, print_interval=100)[-1]
-                scheduler_warmup_roi.step(epoch, mean_mAP+tar_at_far)
-                print(scheduler_warmup_roi.get_lr())
                 
         for key, val in loss_epoch_log.items():
             loss_epoch_log[key] =loss_epoch_log[key]/i

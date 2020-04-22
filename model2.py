@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 import torch.nn.functional as F
 from collections import OrderedDict
@@ -13,7 +14,7 @@ from model import JDE_RoIHeads, featureExtractor, featureHead
 import math
 
 class Jde_RCNN(GeneralizedRCNN):
-    def __init__(self, backbone, num_classes=None, num_ID=128,
+    def __init__(self, backbone, num_classes=2, num_ID=128,version='v1',
                  # transform parameters
                  min_size=800, max_size=1333,
                  image_mean=None, image_std=None,
@@ -112,7 +113,7 @@ class Jde_RCNN(GeneralizedRCNN):
             bbox_reg_weights,
             box_score_thresh, box_nms_thresh, box_detections_per_img,
             len_embeddings, num_ID, embed_head, embed_extractor)
-
+        roi_heads.version = 'v1'
         if image_mean is None:
             image_mean = [0.485, 0.456, 0.406]
         if image_std is None:
@@ -120,6 +121,11 @@ class Jde_RCNN(GeneralizedRCNN):
         transform = GeneralizedRCNNTransform(min_size, max_size, image_mean, image_std)
 
         super(Jde_RCNN, self).__init__(backbone, rpn, roi_heads, transform)
+        self.version = version
+        self.original_image_sizes = None
+        self.preprocessed_images = None
+        self.features = None
+        self.box_features = None
 
     def detect(self):
         device = list(self.parameters())[0].device
