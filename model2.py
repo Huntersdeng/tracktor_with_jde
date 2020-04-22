@@ -10,7 +10,7 @@ from torchvision.models.detection.roi_heads import RoIHeads
 from torchvision.models.detection.faster_rcnn import TwoMLPHead, FastRCNNPredictor
 from torchvision.models.detection.transform import GeneralizedRCNNTransform, resize_boxes
 from torchvision.ops import boxes as box_ops
-from model import JDE_RoIHeads, featureExtractor, featureHead
+from model import featureExtractor, featureHead
 import math
 
 class Jde_RCNN(GeneralizedRCNN):
@@ -207,3 +207,255 @@ class Jde_RCNN(GeneralizedRCNN):
         if isinstance(self.features, torch.Tensor):
             self.features = OrderedDict([(0, self.features)])
         self.box_features={}
+
+
+class JDE_RoIHeads(RoIHeads):
+    def __init__(self,
+                box_roi_pool,
+                box_head,
+                box_predictor,
+                # Faster R-CNN training
+                fg_iou_thresh, bg_iou_thresh,
+                batch_size_per_image, positive_fraction,
+                bbox_reg_weights,
+                # Faster R-CNN inference
+                score_thresh,
+                nms_thresh,
+                detections_per_img,
+                # ReID parameters
+                len_embeddings, num_ID, embed_head, embed_extractor,
+                # Mask
+                mask_roi_pool=None,
+                mask_head=None,
+                mask_predictor=None,
+                keypoint_roi_pool=None,
+                keypoint_head=None,
+                keypoint_predictor=None,
+                ):
+
+        super(JDE_RoIHeads, self).__init__(box_roi_pool, box_head, box_predictor,
+                                          fg_iou_thresh, bg_iou_thresh,
+                                          batch_size_per_image, positive_fraction,
+                                          bbox_reg_weights,
+                                          score_thresh, nms_thresh, detections_per_img)
+        self.embed_head = embed_head
+        self.embed_extractor = embed_extractor
+        self.num_ID = num_ID
+        self.len_embeddings = len_embeddings
+        self.identifier = nn.Linear(len_embeddings, num_ID)
+
+        # # TODO
+        self.s_c = nn.Parameter(-4.15*torch.ones(1))  # -4.15
+        self.s_r = nn.Parameter(-4.85*torch.ones(1))  # -4.85
+        self.s_id = nn.Parameter(-2.3*torch.ones(1))  # -2.3
+
+    def forward(self, features, proposals, image_shapes, targets=None):
+        """
+        Arguments:
+            features (List[Tensor])
+            proposals (List[Tensor[N, 4]])
+            image_shapes (List[Tuple[H, W]])
+            targets (List[Dict])
+        """
+        if targets is not None:
+            for t in targets:
+                assert t["boxes"].dtype.is_floating_point, 'target boxes must of float type'
+                assert t["labels"].dtype == torch.int64, 'target labels must of int64 type'
+                assert t["ids"].dtype == torch.int64, 'target ids must of int64 type'
+                if self.has_keypoint:
+                    assert t["keypoints"].dtype == torch.float32, 'target keypoints must of float type'
+
+        if self.training:
+            proposals, matched_idxs, labels, regression_targets, ids = self.select_training_samples(proposals, targets)
+        
+        features = self.box_roi_pool(features, proposals, image_shapes)
+        box_features = self.box_head(features)
+        class_logits, box_regression= self.box_predictor(box_features)
+
+
+        if self.training:
+            if self.version == 'v1':
+                embed_features = self.embed_head(features)
+            elif self.version =='v2':
+                embed_features = box_features
+            else:
+                raise ValueError
+            embeddings = self.embed_extractor(embed_features)
+
+        result, losses = [], {}
+        if self.training:
+            loss_classifier, loss_box_reg, loss_reid = self.JDE_loss(
+                class_logits, box_regression, embeddings, labels, regression_targets, ids)
+
+            # loss_total = torch.exp(-self.s_r)*loss_box_reg + torch.exp(-self.s_c)*loss_classifier + torch.exp(-self.s_id)*loss_reid + \
+            #        (self.s_r + self.s_c + self.s_id)
+            losses = dict(loss_classifier=loss_classifier, loss_box_reg=loss_box_reg, loss_reid=loss_reid)
+        else:
+            if self.version == 'v1':
+                boxes, scores, labels = self.postprocess_detections(class_logits, box_regression, proposals, image_shapes)
+                num_images = len(boxes)
+                for i in range(num_images):
+                    result.append(
+                        dict(
+                            boxes=boxes[i],
+                            labels=labels[i],
+                            scores=scores[i]
+                        )
+                    )
+            elif self.version =='v2':
+                boxes, scores, labels, box_features = self.postprocess_detections_jde(class_logits, box_regression, box_features, proposals, image_shapes)
+                num_images = len(boxes)
+                for i in range(num_images):
+                    result.append(
+                        dict(
+                            boxes=boxes[i],
+                            labels=labels[i],
+                            scores=scores[i],
+                            box_features=box_features[i]
+                        )
+                    )
+
+        return result, losses
+
+        
+    
+    def JDE_loss(self, class_logits, box_regression, embeddings, labels, regression_targets, ids):
+        labels = torch.cat(labels, dim=0)
+        regression_targets = torch.cat(regression_targets, dim=0)
+        ids = torch.cat(ids, dim=0)
+
+        classification_loss = F.cross_entropy(class_logits, labels)
+
+        # get indices that correspond to the regression targets for
+        # the corresponding ground truth labels, to be used with
+        # advanced indexing
+        sampled_pos_inds_subset = torch.nonzero(labels > 0).squeeze(1)
+        labels_pos = labels[sampled_pos_inds_subset]
+        N, num_classes = class_logits.shape
+        box_regression = box_regression.reshape(N, -1, 4)
+
+        box_loss = F.smooth_l1_loss(
+            box_regression[sampled_pos_inds_subset, labels_pos],
+            regression_targets[sampled_pos_inds_subset],
+            reduction="sum",
+        )
+        box_loss = box_loss / labels.numel()
+
+        # compute the reid loss for positive targets
+        reid_logits = self.identifier(embeddings)
+        index = ids > -1
+        if torch.sum(index):
+            reid_loss = F.cross_entropy(reid_logits[index], ids[index])
+        else:
+            reid_loss = torch.tensor(0)
+        return classification_loss, box_loss, reid_loss
+
+    def select_training_samples(self, proposals, targets):
+        self.check_targets(targets)
+        gt_boxes = [t["boxes"] for t in targets]
+        gt_labels = [t["labels"] for t in targets]
+        gt_ids = [t["ids"] for t in targets]
+
+        # append ground-truth bboxes to propos
+        proposals = self.add_gt_proposals(proposals, gt_boxes)
+
+        # get matching gt indices for each proposal
+        matched_idxs, labels, ids = self.assign_targets_to_proposals(proposals, gt_boxes, gt_labels, gt_ids)
+        # sample a fixed proportion of positive-negative proposals
+        sampled_inds = self.subsample(labels)
+        matched_gt_boxes = []
+        num_images = len(proposals)
+        for img_id in range(num_images):
+            img_sampled_inds = sampled_inds[img_id]
+            proposals[img_id] = proposals[img_id][img_sampled_inds]
+            labels[img_id] = labels[img_id][img_sampled_inds]
+            ids[img_id] = ids[img_id][img_sampled_inds]
+            matched_idxs[img_id] = matched_idxs[img_id][img_sampled_inds]
+            matched_gt_boxes.append(gt_boxes[img_id][matched_idxs[img_id]])
+
+        regression_targets = self.box_coder.encode(matched_gt_boxes, proposals)
+        return proposals, matched_idxs, labels, regression_targets, ids
+
+    def assign_targets_to_proposals(self, proposals, gt_boxes, gt_labels, gt_ids):
+        matched_idxs = []
+        labels = []
+        ids = []
+        for proposals_in_image, gt_boxes_in_image, gt_labels_in_image, gt_ids_in_image in zip(proposals, gt_boxes, gt_labels, gt_ids):
+            match_quality_matrix = self.box_similarity(gt_boxes_in_image, proposals_in_image)
+            matched_idxs_in_image = self.proposal_matcher(match_quality_matrix)
+
+            clamped_matched_idxs_in_image = matched_idxs_in_image.clamp(min=0)
+
+            labels_in_image = gt_labels_in_image[clamped_matched_idxs_in_image]
+            labels_in_image = labels_in_image.to(dtype=torch.int64)
+
+            ids_in_image = gt_ids_in_image[clamped_matched_idxs_in_image]
+            ids_in_image = ids_in_image.to(dtype=torch.int64) 
+
+            # Label background (below the low threshold)
+            bg_inds = matched_idxs_in_image == self.proposal_matcher.BELOW_LOW_THRESHOLD
+            labels_in_image[bg_inds] = 0
+            ids_in_image[bg_inds] = -1
+
+            # Label ignore proposals (between low and high thresholds)
+            ignore_inds = matched_idxs_in_image == self.proposal_matcher.BETWEEN_THRESHOLDS
+            labels_in_image[ignore_inds] = -1  # -1 is ignored by sampler
+            ids_in_image[ignore_inds] = -1
+
+            matched_idxs.append(clamped_matched_idxs_in_image)
+            labels.append(labels_in_image)
+            ids.append(ids_in_image)
+        return matched_idxs, labels, ids
+
+    
+    def postprocess_detections_jde(self, class_logits, box_regression, box_features, proposals, image_shapes):
+        device = class_logits.device
+        num_classes = class_logits.shape[-1]
+
+        boxes_per_image = [len(boxes_in_image) for boxes_in_image in proposals]
+        pred_boxes = self.box_coder.decode(box_regression, proposals)
+
+        pred_scores = F.softmax(class_logits, -1)
+
+        # split boxes and scores per image
+        pred_boxes = pred_boxes.split(boxes_per_image, 0)
+        pred_scores = pred_scores.split(boxes_per_image, 0)
+        pred_features = box_features.split(boxes_per_image, 0)
+
+        all_boxes = []
+        all_scores = []
+        all_labels = []
+        all_box_features = [] 
+        for boxes, scores, features, image_shape in zip(pred_boxes, pred_scores, pred_features, image_shapes):
+            boxes = box_ops.clip_boxes_to_image(boxes, image_shape)
+
+            # create labels for each prediction
+            labels = torch.arange(num_classes, device=device)
+            labels = labels.view(1, -1).expand_as(scores)
+
+            # remove predictions with the background label
+            boxes = boxes[:, 1:]
+            scores = scores[:, 1:]
+            labels = labels[:, 1:]
+
+            # batch everything, by making every class prediction be a separate instance
+            boxes = boxes.reshape(-1, 4)
+            scores = scores.flatten()
+            labels = labels.flatten()
+
+            # remove low scoring boxes
+            inds = torch.nonzero(scores > self.score_thresh).squeeze(1)
+            boxes, scores, labels = boxes[inds], scores[inds], labels[inds]
+
+            # non-maximum suppression, independently done per class
+            keep = box_ops.batched_nms(boxes, scores, labels, self.nms_thresh)
+            # keep only topk scoring predictions
+            keep = keep[:self.detections_per_img]
+            boxes, scores, labels, features = boxes[keep], scores[keep], labels[keep], features[keep]
+
+            all_boxes.append(boxes)
+            all_scores.append(scores)
+            all_labels.append(labels)
+            all_box_features.append(features)
+
+        return all_boxes, all_scores, all_labels, all_box_features
