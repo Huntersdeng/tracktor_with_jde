@@ -19,7 +19,7 @@ from functools import reduce
 class Jde_RCNN(GeneralizedRCNN):
     def __init__(self, backbone, num_ID, num_classes=2, version='v1',
                  # transform parameters
-                 min_size=480, max_size=640,
+                 min_size=800, max_size=1333,
                  image_mean=None, image_std=None,
                  # RPN parameters
                  rpn_anchor_generator=None, rpn_head=None,

@@ -73,7 +73,7 @@ def train(
     backbone = resnet_fpn_backbone(opt.backbone_name, True)
     backbone.out_channels = 256
 
-    model = Jde_RCNN(backbone, num_ID=trainset.nID, min_size=img_size[1], max_size=img_size[0], version=opt.model_version)
+    model = Jde_RCNN(backbone, num_ID=trainset.nID, version=opt.model_version)
     model.cuda().train()
 
     # model = torch.nn.DataParallel(model)

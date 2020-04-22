@@ -113,7 +113,7 @@ class Jde_RCNN(GeneralizedRCNN):
             bbox_reg_weights,
             box_score_thresh, box_nms_thresh, box_detections_per_img,
             len_embeddings, num_ID, embed_head, embed_extractor)
-        roi_heads.version = 'v1'
+        roi_heads.version = version
         if image_mean is None:
             image_mean = [0.485, 0.456, 0.406]
         if image_std is None:
@@ -134,12 +134,12 @@ class Jde_RCNN(GeneralizedRCNN):
         proposals, _ = self.rpn(images, self.features, None)
         detections, _ = self.roi_heads(self.features, proposals, images.image_sizes, None)
         detections = self.transform.postprocess(detections, images.image_sizes, self.original_image_sizes)[0]
-        # if self.version=='v2':
-        #     boxes, scores, box_features = detections['boxes'].detach(), detections['scores'].detach(), detections['box_features'].detach()
-        #     for box, box_feature in zip(boxes, box_features):
-        #         self.box_features[str(int(box[0]))+','+str(int(box[1]))+','+str(int(box[2]))+','+str(int(box[3]))] = box_feature
-        # else:
-        boxes, scores = detections['boxes'].detach(), detections['scores'].detach()
+        if self.version=='v2':
+            boxes, scores, box_features = detections['boxes'].detach(), detections['scores'].detach(), detections['box_features'].detach()
+            for box, box_feature in zip(boxes, box_features):
+                self.box_features[str(int(box[0]))+','+str(int(box[1]))+','+str(int(box[2]))+','+str(int(box[3]))] = box_feature
+        else:
+            boxes, scores = detections['boxes'].detach(), detections['scores'].detach()
         return boxes, scores
 
     def predict_boxes(self, boxes):
@@ -178,19 +178,19 @@ class Jde_RCNN(GeneralizedRCNN):
         pred_boxes = resize_boxes(pred_boxes, self.preprocessed_images.image_sizes[0], self.original_image_sizes[0])
         pred_scores = pred_scores[:, 1:].squeeze(dim=1).detach()
         pred_boxes = box_ops.clip_boxes_to_image(pred_boxes, self.original_image_sizes[0])
-        # if self.version=='v2':
-        #     for box, box_feature in zip(pred_boxes, box_features):
-        #         self.box_features[str(int(box[0]))+','+str(int(box[1]))+','+str(int(box[2]))+','+str(int(box[3]))] = box_feature
+        if self.version=='v2':
+            for box, box_feature in zip(pred_boxes, box_features):
+                self.box_features[str(int(box[0]))+','+str(int(box[1]))+','+str(int(box[2]))+','+str(int(box[3]))] = box_feature
         return pred_boxes, pred_scores
 
     def get_embedding(self, boxes):
-        # if self.version=='v2':
-        #     embed_features = reduce(lambda x,y: torch.cat((x,y)), [self.box_features[str(int(box[0]))+','+str(int(box[1]))+','+str(int(box[2]))+','+str(int(box[3]))].view(1,-1) for box in boxes])
-        # if self.version=='v1':
-        if type(boxes)!=list:
-            boxes = [boxes]
-        features = self.roi_heads.box_roi_pool(self.features, boxes, self.preprocessed_images.image_sizes)
-        embed_features = self.roi_heads.embed_head(features)
+        if self.version=='v2':
+            embed_features = reduce(lambda x,y: torch.cat((x,y)), [self.box_features[str(int(box[0]))+','+str(int(box[1]))+','+str(int(box[2]))+','+str(int(box[3]))].view(1,-1) for box in boxes])
+        if self.version=='v1':
+            if type(boxes)!=list:
+                boxes = [boxes]
+            features = self.roi_heads.box_roi_pool(self.features, boxes, self.preprocessed_images.image_sizes)
+            embed_features = self.roi_heads.embed_head(features)
         embeddings = self.roi_heads.embed_extractor(embed_features)
         return embeddings
 

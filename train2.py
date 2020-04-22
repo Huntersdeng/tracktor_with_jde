@@ -21,14 +21,12 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
-from utils.engine import train_one_epoch
-import utils.utils as utils
+warnings.filterwarnings('ignore')
+
 
 def train(
         save_path,
         save_every,
-        train_rpn_stage,
-        train_reid,
         img_size=(640,480),
         resume=False,
         epochs=25,
@@ -69,33 +67,92 @@ def train(
     dataloader_valset = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=True,
                                                 num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate_fn)                                       
     
-    cfg['num_ID'] = trainset.nID
     backbone = resnet_fpn_backbone(opt.backbone_name, True)
     backbone.out_channels = 256
 
-    model = Jde_RCNN(backbone, num_ID=trainset.nID, min_size=img_size[1], max_size=img_size[0], version=opt.model_version)
+    model = Jde_RCNN(backbone, num_ID=trainset.nID, version=opt.model_version)
     model.cuda().train()
 
     params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = torch.optim.SGD(params, lr=0.00001,
+    optimizer = torch.optim.SGD(params, lr=opt.lr,
                                 momentum=0.9, weight_decay=0.0005)
 
     # and a learning rate scheduler which decreases the learning rate by
     # 10x every 3 epochs
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
+                                                step_size=10,
+                                                gamma=0.1)
+    cfg['num_ID'] = trainset.nID
     
-    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    checkpoint = torch.load(latest_resume, map_location='cpu')
 
-    # Load weights to resume from
-    print(model.load_state_dict(checkpoint['model'],strict=False))
+    # model = torch.nn.DataParallel(model)
+    start_epoch = 0
+    
+    if resume:
+        checkpoint = torch.load(latest_resume, map_location='cpu')
+
+        # Load weights to resume from
+        print(model.load_state_dict(checkpoint['model'],strict=False))
+        
+        # Set optimizer
+        start_epoch = checkpoint['epoch'] + 1
+
+        del checkpoint  # current, saved
+        
+    else:
+        with open(os.path.join(weights_path,'model.yaml'), 'w+') as f:
+            yaml.dump(cfg, f)
         
     for epoch in range(epochs):
-        train_one_epoch(model, optimizer, dataloader_trainset, device, epoch, print_freq=200)
+        epoch += start_epoch
+        loss_epoch_log = dict(loss_total=0, loss_classifier=0, loss_box_reg=0, loss_reid=0, loss_objectness=0, loss_rpn_box_reg=0)
+        for i, (imgs, labels, imgs_path, _, targets_len) in enumerate(tqdm(dataloader_trainset)):
+            targets = []
+            imgs = imgs.cuda()
+            labels = labels.cuda()
+            flag = False
+            for target_len, label in zip(np.squeeze(targets_len), labels):
+                ## convert the input to demanded format
+                target = {}
+                if target_len==0:
+                    flag = True
+                target['boxes'] = label[0:int(target_len), 2:6]
+                target['ids'] = (label[0:int(target_len), 1]).long()
+                target['labels'] = torch.ones_like(target['ids'])
+                targets.append(target)
+            if flag:
+                break
+            losses = model(imgs, targets)
 
+            loss = losses['loss_total'] + losses['loss_objectness'] + losses['loss_rpn_box_reg']
+            loss.backward()
+            optimizer.step()
+            lr_scheduler.step()
+        ## print and log the loss
 
-        if epoch % save_every == 0:
+            for key, val in losses.items():
+                loss_epoch_log[key] = float(val) + loss_epoch_log[key]
+                
+        for key, val in loss_epoch_log.items():
+            loss_epoch_log[key] =loss_epoch_log[key]/i
+        print("loss in epoch %d: "%(epoch))
+        print(loss_epoch_log)
+                
+
+        checkpoint = {'epoch': epoch,
+                      'model': model.state_dict(),
+                      'optimizer':optimizer.state_dict()
+                      }
+        
+        
+        latest = osp.join(weights_path, 'latest.pt')
+        torch.save(checkpoint, latest)
+        if epoch % save_every == 0 and epoch != 0:
             torch.save(checkpoint, osp.join(weights_path, "weights_epoch_" + str(epoch) + ".pt"))
-            test(model, dataloader_valset, print_interval=10)
+            mean_mAP, _, _ = test(model, dataloader_valset, print_interval=100)
+        with open(loss_log_path, 'a+') as f:
+            json.dump(loss_epoch_log, f) 
+            f.write('\n')
 
 
 if __name__ == '__main__':
@@ -108,8 +165,6 @@ if __name__ == '__main__':
                                 '--resume)')
     parser.add_argument('--save-model-after', type=int, default=5,
                         help='Save a checkpoint of model at given interval of epochs')
-    parser.add_argument('--train-rpn-stage', action='store_true', help='for training rpn')
-    parser.add_argument('--train-reid', action='store_true', help='for training reid')
     parser.add_argument('--img-size', type=int, default=(960,720), nargs='+', help='pixels')
     parser.add_argument('--resume', action='store_true', help='resume training flag')
     parser.add_argument('--lr', type=float, default=-1.0, help='init lr')
@@ -123,8 +178,6 @@ if __name__ == '__main__':
     train(
         save_path=opt.save_path,
         save_every=opt.save_model_after,
-        train_rpn_stage=opt.train_rpn_stage,
-        train_reid=opt.train_reid,
         img_size=opt.img_size,
         resume=opt.resume,
         epochs=opt.epochs,
@@ -133,5 +186,3 @@ if __name__ == '__main__':
         opt=opt
     )
 
-
-    
