@@ -21,8 +21,8 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
-from engine import train_one_epoch
-import utils
+from utils.engine import train_one_epoch
+import utils.utils as utils
 
 def train(
         save_path,
