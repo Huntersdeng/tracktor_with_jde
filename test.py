@@ -190,7 +190,7 @@ if __name__ == '__main__':
     
     opt = parser.parse_args()
     print(opt, end='\n\n')
-    os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
     weights_path = opt.weights_path
     with open(os.path.join(weights_path, 'model.yaml'), 'r') as f:
         cfg = yaml.load(f,Loader=yaml.FullLoader)
@@ -203,7 +203,8 @@ if __name__ == '__main__':
     # model = FRCNN_FPN(num_classes=2)
 
     model = Jde_RCNN(backbone, num_ID=cfg['num_ID'], min_size=img_size[1], max_size=img_size[0])
-    # model = torch.nn.DataParallel(model)
+    #model = Jde_RCNN(backbone, num_ID=cfg['num_ID'])
+    #model = torch.nn.DataParallel(model)
     checkpoint = torch.load(weights, map_location='cpu')['model']
     # Load weights to resume from
     print(model.load_state_dict(checkpoint, strict=False))

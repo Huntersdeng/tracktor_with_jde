@@ -20,7 +20,7 @@ from tracker import Tracker
 from utils.utils import interpolate, plot_sequence, get_mot_accum, evaluate_mot_accums, write_results
 from utils.datasets import LoadImagesAndLabels
 
-os.environ['CUDA_VISIBLE_DEVICES']='2'
+os.environ['CUDA_VISIBLE_DEVICES']='1'
 root = '/data/dgw/'
 # root = '..'
 output_dir = '../output'

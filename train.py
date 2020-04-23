@@ -73,7 +73,7 @@ def train(
     backbone = resnet_fpn_backbone(opt.backbone_name, True)
     backbone.out_channels = 256
 
-    model = Jde_RCNN(backbone, num_ID=trainset.nID, version=opt.model_version)
+    model = Jde_RCNN(backbone, num_ID=trainset.nID, min_size=img_size[1], max_size=img_size[0], version=opt.model_version)
     model.cuda().train()
 
     # model = torch.nn.DataParallel(model)
@@ -81,8 +81,8 @@ def train(
     optimizer_rpn = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9, weight_decay=5e-4)
     optimizer_roi = torch.optim.SGD(filter(lambda x: x.requires_grad, model.roi_heads.parameters()), lr=opt.lr, momentum=.9, weight_decay=5e-4)
     # optimizer_reid = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
-    after_scheduler_rpn = StepLR(optimizer_rpn, 1, 0.9)
-    after_scheduler_roi = StepLR(optimizer_roi, 1, 0.9)
+    after_scheduler_rpn = StepLR(optimizer_rpn, 3, 0.4)
+    after_scheduler_roi = StepLR(optimizer_roi, 3, 0.4)
 
     scheduler_warmup_rpn = GradualWarmupScheduler(optimizer_rpn, multiplier=8, total_epoch=5, after_scheduler=after_scheduler_rpn)
     scheduler_warmup_roi = GradualWarmupScheduler(optimizer_roi, multiplier=8, total_epoch=10, after_scheduler=after_scheduler_roi)
@@ -125,12 +125,14 @@ def train(
                 print(scheduler_warmup_rpn.get_lr())
             else:
                 #mean_mAP, _, _ = test(model, dataloader_valset, print_interval=100)
-                tar_at_far = test_emb(model, dataloader_valset, print_interval=100)[-1]
+                #tar_at_far = test_emb(model, dataloader_valset, print_interval=100)[-1]
                 scheduler_warmup_roi.step(epoch, None)
                 print(scheduler_warmup_roi.get_lr())
 
         model.cuda().train()
         if not train_rpn_stage:
+            for name, p in model.backbone.named_parameters():
+                p.requires_grad = False
             for i, (name, p) in enumerate(model.rpn.named_parameters()):
                 p.requires_grad = False
             print('lr: ', optimizer_roi.param_groups[0]['lr'])
@@ -144,7 +146,7 @@ def train(
             imgs = imgs.cuda()
             labels = labels.cuda()
             flag = False
-            for target_len, label in zip(np.squeeze(targets_len), labels):
+            for target_len, label in zip(targets_len.view(-1,), labels):
                 ## convert the input to demanded format
                 target = {}
                 if target_len==0:
@@ -154,13 +156,13 @@ def train(
                 target['labels'] = torch.ones_like(target['ids'])
                 targets.append(target)
             if flag:
-                break
+                continue
             losses = model(imgs, targets)
 
             ## two stages training
 
             if train_rpn_stage:
-                loss = 0.4*losses['loss_objectness'] + 2*losses['loss_rpn_box_reg']
+                loss = 3*losses['loss_objectness'] + losses['loss_rpn_box_reg']
                 
                 loss.backward()
                 if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader_trainset) - 1):

@@ -123,8 +123,7 @@ def train(
             if flag:
                 break
             losses = model(imgs, targets)
-
-            loss = losses['loss_total'] + losses['loss_objectness'] + losses['loss_rpn_box_reg']
+            loss = losses['loss_classifier']+ 0.1*losses['loss_box_reg'] + losses['loss_objectness'] + losses['loss_rpn_box_reg']
             loss.backward()
             optimizer.step()
             lr_scheduler.step()
