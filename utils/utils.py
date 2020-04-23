@@ -700,8 +700,8 @@ def plot_sequence(tracks, db, output_dir):
     loop_cy_iter = cyl()
     styles = defaultdict(lambda: next(loop_cy_iter))
 
-    for i, v in enumerate(db):
-        im_path = v['img_path']
+    for i, (frame, labels, imgs_path, _) in enumerate(db):
+        im_path = imgs_path
         im_name = osp.basename(im_path)
         im_output = osp.join(output_dir, im_name)
         im = cv2.imread(im_path)
