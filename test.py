@@ -160,7 +160,7 @@ def test_emb(
     n = len(id_labels)
     print(n, len(embedding))
     assert len(embedding) == n
-    embedding = F.normalize(embedding, dim=0)
+    #embedding = F.normalize(embedding, dim=0)
     pdist = torch.mm(embedding, embedding.t()).cpu().numpy()
     gt = id_labels.expand(n,n).eq(id_labels.expand(n,n).t()).numpy()
     

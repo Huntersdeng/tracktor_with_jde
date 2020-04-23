@@ -15,7 +15,7 @@ from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
 from utils.datasets import LoadImagesAndLabels, collate_fn, JointDataset, letterbox, random_affine
 from utils.scheduler import GradualWarmupScheduler
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
-from model2 import Jde_RCNN
+from model import Jde_RCNN
 
 import cv2
 import matplotlib.pyplot as plt
@@ -124,7 +124,7 @@ def train(
                 scheduler_warmup_rpn.step(epoch, None)
                 print(scheduler_warmup_rpn.get_lr())
             else:
-                #mean_mAP, _, _ = test(model, dataloader_valset, print_interval=100)
+                mean_mAP, _, _ = test(model, dataloader_valset, print_interval=100)
                 #tar_at_far = test_emb(model, dataloader_valset, print_interval=100)[-1]
                 scheduler_warmup_roi.step(epoch, None)
                 print(scheduler_warmup_roi.get_lr())
@@ -162,7 +162,7 @@ def train(
             ## two stages training
 
             if train_rpn_stage:
-                loss = 3*losses['loss_objectness'] + losses['loss_rpn_box_reg']
+                loss = losses['loss_objectness'] + 0.3*losses['loss_rpn_box_reg']
                 
                 loss.backward()
                 if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader_trainset) - 1):
@@ -175,7 +175,7 @@ def train(
                         loss = losses['loss_reid']
                         
                     else:
-                        loss = 2*losses['loss_box_reg'] + 0.4*losses['loss_classifier'] + losses['loss_reid']
+                        loss = losses['loss_box_reg'] + losses['loss_classifier'] + losses['loss_reid']
                     
                     loss.backward()
                     if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader_trainset) - 1):

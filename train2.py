@@ -121,9 +121,9 @@ def train(
                 target['labels'] = torch.ones_like(target['ids'])
                 targets.append(target)
             if flag:
-                break
+                continue
             losses = model(imgs, targets)
-            loss = losses['loss_classifier']+ 0.1*losses['loss_box_reg'] + losses['loss_objectness'] + losses['loss_rpn_box_reg']
+            loss = losses['loss_classifier']+ losses['loss_box_reg'] + losses['loss_objectness'] + losses['loss_rpn_box_reg']
             loss.backward()
             optimizer.step()
             lr_scheduler.step()

@@ -62,7 +62,7 @@ for seq_path in os.listdir(tracktor['dataset']):
     start = time.time()
 
     print(f"Tracking: {seq_path}")
-    sequence = LoadImages(osp.join(tracktor['dataset'], seq_path), img_size)
+    sequence = LoadImages(osp.join(tracktor['dataset'], seq_path+'/images'), img_size)
     data_loader = DataLoader(sequence, batch_size=1, shuffle=False)
 
     for i, (_, frame, _) in enumerate(tqdm(data_loader)):
