@@ -1,6 +1,8 @@
 import os
 import time
 from os import path as osp
+import yaml
+from tqdm import tqdm
 
 import numpy as np
 import torch
@@ -10,111 +12,82 @@ import motmetrics as mm
 mm.lap.default_solver = 'lap'
 
 import torchvision
-import yaml
-from tqdm import tqdm
-import sacred
-from sacred import Experiment
-from tracktor.frcnn_fpn import FRCNN_FPN
-from tracktor.config import get_output_dir
-from tracktor.datasets.factory import Datasets
-from tracktor.oracle_tracker import OracleTracker
-from tracktor.tracker import Tracker
-from tracktor.reid.resnet import resnet50
-from tracktor.utils import interpolate, plot_sequence, get_mot_accum, evaluate_mot_accums
+from torchvision.transforms import transforms as T
+from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
 
-ex = Experiment()
+from model2 import Jde_RCNN
+from tracker import Tracker
+from utils.utils import interpolate, plot_sequence, get_mot_accum, evaluate_mot_accums, write_results
+from utils.datasets import LoadImages
 
-ex.add_config('experiments/cfgs/tracktor.yaml')
-
-# hacky workaround to load the corresponding configs and not having to hardcode paths here
-ex.add_config(ex.configurations[0]._conf['tracktor']['reid_config'])
-ex.add_named_config('oracle', 'experiments/cfgs/oracle_tracktor.yaml')
+os.environ['CUDA_VISIBLE_DEVICES']='1'
+root = '/data/dgw/'
+# root = '..'
+output_dir = '../output'
 
 
-@ex.automain
-def main(tracktor, reid, _config, _log, _run):
-    sacred.commands.print_config(_run)
+print("Initializing object detector.")
+with open('./cfg/tracktor.yaml', 'r') as f:
+    tracktor = yaml.load(f,Loader=yaml.FullLoader)['tracktor']
 
-    # set all seeds
-    torch.manual_seed(tracktor['seed'])
-    torch.cuda.manual_seed(tracktor['seed'])
-    np.random.seed(tracktor['seed'])
-    torch.backends.cudnn.deterministic = True
+##########################
+# Initialize the modules #
+##########################
 
-    output_dir = osp.join(get_output_dir(tracktor['module_name']), tracktor['name'])
-    sacred_config = osp.join(output_dir, 'sacred_config.yaml')
+# object detection
+img_size = (tracktor['width'], tracktor['height'])
+backbone = resnet_fpn_backbone(tracktor['backbone'], True)
+backbone.out_channels = 256
+obj_detect = Jde_RCNN(backbone, num_ID=tracktor['num_ID'], min_size=img_size[1], max_size=img_size[0], version=tracktor['version'])
+checkpoint = torch.load(tracktor['weights'], map_location='cpu')['model']
+if tracktor['version']=='v2':
+    checkpoint['roi_heads.embed_extractor.extract_embedding.weight'] = checkpoint['roi_heads.box_predictor.extract_embedding.weight']
+    checkpoint['roi_heads.embed_extractor.extract_embedding.bias'] = checkpoint['roi_heads.box_predictor.extract_embedding.bias']
+print(obj_detect.load_state_dict(checkpoint, strict=False))
 
-    if not osp.exists(output_dir):
-        os.makedirs(output_dir)
-    with open(sacred_config, 'w') as outfile:
-        yaml.dump(_config, outfile, default_flow_style=False)
+obj_detect.eval()
+obj_detect.cuda()
 
-    ##########################
-    # Initialize the modules #
-    ##########################
+tracker = Tracker(obj_detect, tracktor['tracker'])
 
-    # object detection
-    _log.info("Initializing object detector.")
+transforms = T.Compose([T.ToTensor()])
 
-    obj_detect = FRCNN_FPN(num_classes=2)
-    obj_detect.load_state_dict(torch.load(_config['tracktor']['obj_detect_model'],
-                               map_location=lambda storage, loc: storage))
+time_total = 0
+num_frames = 0
+mot_accums = []
 
-    obj_detect.eval()
-    obj_detect.cuda()
+for seq_path in os.listdir(tracktor['dataset']):
+    tracker.reset()
 
-    # reid
-    reid_network = resnet50(pretrained=False, **reid['cnn'])
-    reid_network.load_state_dict(torch.load(tracktor['reid_weights'],
-                                 map_location=lambda storage, loc: storage))
-    reid_network.eval()
-    reid_network.cuda()
+    start = time.time()
 
-    # tracktor
-    if 'oracle' in tracktor:
-        tracker = OracleTracker(obj_detect, reid_network, tracktor['tracker'], tracktor['oracle'])
-    else:
-        tracker = Tracker(obj_detect, reid_network, tracktor['tracker'])
+    print(f"Tracking: {seq_path}")
+    sequence = LoadImages(osp.join(tracktor['dataset'], seq_path), img_size)
+    data_loader = DataLoader(sequence, batch_size=1, shuffle=False)
 
-    time_total = 0
-    num_frames = 0
-    mot_accums = []
-    dataset = Datasets(tracktor['dataset'])
-    for seq in dataset:
-        tracker.reset()
+    for i, (_, frame, _) in enumerate(tqdm(data_loader)):
+        blob = {'img':frame.cuda()}
+        # blob = {'img':frame}
+        with torch.no_grad():
+            tracker.step(blob)
+        num_frames += 1
+    results = tracker.get_results()
+    time_total += time.time() - start
 
-        start = time.time()
+    print(f"Tracks found: {len(results)}")
+    print(f"Runtime for {seq_path}: {time.time() - start :.1f} s.")
 
-        _log.info(f"Tracking: {seq}")
+    if tracktor['interpolate']:
+        results = interpolate(results)
 
-        data_loader = DataLoader(seq, batch_size=1, shuffle=False)
-        for i, frame in enumerate(tqdm(data_loader)):
-            if len(seq) * tracktor['frame_split'][0] <= i <= len(seq) * tracktor['frame_split'][1]:
-                with torch.no_grad():
-                    tracker.step(frame)
-                num_frames += 1
-        results = tracker.get_results()
+    print(f"Writing predictions to: {output_dir}")
+    write_results(seq_path.rstrip('.txt'), results, output_dir)
 
-        time_total += time.time() - start
+    if tracktor['write_images']:
+        plot_sequence(results, sequence, osp.join(output_dir, tracktor['dataset'], seq_path).rstrip('.txt'))
 
-        _log.info(f"Tracks found: {len(results)}")
-        _log.info(f"Runtime for {seq}: {time.time() - start :.1f} s.")
-
-        if tracktor['interpolate']:
-            results = interpolate(results)
-
-        if seq.no_gt:
-            _log.info(f"No GT data for evaluation available.")
-        else:
-            mot_accums.append(get_mot_accum(results, seq))
-
-        _log.info(f"Writing predictions to: {output_dir}")
-        seq.write_results(results, output_dir)
-
-        if tracktor['write_images']:
-            plot_sequence(results, seq, osp.join(output_dir, tracktor['dataset'], str(seq)))
-
-    _log.info(f"Tracking runtime for all sequences (without evaluation or image writing): "
-              f"{time_total:.1f} s ({num_frames / time_total:.1f} Hz)")
-    if mot_accums:
-        evaluate_mot_accums(mot_accums, [str(s) for s in dataset if not s.no_gt], generate_overall=True)
+print(f"Tracking runtime for all sequences (without evaluation or image writing): "
+            f"{time_total:.1f} s ({num_frames / time_total:.1f} Hz)")
+# if mot_accums:
+#     evaluate_mot_accums(mot_accums, [str(s) for s in os.listdir(tracktor['dataset'])], generate_overall=True)
+    # evaluate_mot_accums(mot_accums, ['a'], generate_overall=True)
