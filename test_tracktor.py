@@ -27,7 +27,7 @@ output_dir = '../output'
 
 
 print("Initializing object detector.")
-with open('./cfg/tracktor.yaml', 'r') as f:
+with open('./cfg/test_tracktor.yaml', 'r') as f:
     tracktor = yaml.load(f,Loader=yaml.FullLoader)['tracktor']
 
 ##########################
