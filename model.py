@@ -26,7 +26,7 @@ class Jde_RCNN(GeneralizedRCNN):
                  rpn_pre_nms_top_n_train=2000, rpn_pre_nms_top_n_test=1000,
                  rpn_post_nms_top_n_train=2000, rpn_post_nms_top_n_test=1000,
                  rpn_nms_thresh=0.7,
-                 rpn_fg_iou_thresh=0.7, rpn_bg_iou_thresh=0.3,
+                 rpn_fg_iou_thresh=0.5, rpn_bg_iou_thresh=0.4, #FIXME 这两个参数是参照论文Towards Real-Time Multi-Object Tracking
                  rpn_batch_size_per_image=256, rpn_positive_fraction=0.5,
                  # Box parameters
                  box_roi_pool=None, box_head=None, box_predictor=None,
@@ -34,7 +34,7 @@ class Jde_RCNN(GeneralizedRCNN):
                  box_fg_iou_thresh=0.5, box_bg_iou_thresh=0.5,
                  box_batch_size_per_image=256, box_positive_fraction=0.25,
                  bbox_reg_weights=None,
-                 # Embedding parameters
+                 # Embedding parameters ##FIXME 添加的参数
                  len_embeddings=128, embed_head=None, embed_extractor=None):
         
         if not hasattr(backbone, "out_channels"):
@@ -48,6 +48,7 @@ class Jde_RCNN(GeneralizedRCNN):
 
         out_channels = backbone.out_channels
 
+        ##FIXME 改了anchor size，并且只使用宽高比1/3的anchor，参考了Towards Real-Time Multi-Object Tracking
         if rpn_anchor_generator is None:
             anchor_sizes = ((16,22), (32,45), (64,90), (128,181), (256,362))
             aspect_ratios = ((1/3,),) * len(anchor_sizes)
@@ -83,6 +84,7 @@ class Jde_RCNN(GeneralizedRCNN):
 
         emb_scale = math.sqrt(2) * math.log(num_ID-1) if num_ID>1 else 1
 
+        ## FIXME 现在用的是v1
         if embed_head is None:
             if version=='v1':
                 resolution = box_roi_pool.output_size[0]
@@ -117,20 +119,23 @@ class Jde_RCNN(GeneralizedRCNN):
             len_embeddings, num_ID, embed_head, embed_extractor)
         roi_heads.version = version
 
+        #FIXME 这一部分是照搬faster RCNN代码里面的###################
         if image_mean is None:
             image_mean = [0.485, 0.456, 0.406]
         if image_std is None:
             image_std = [0.229, 0.224, 0.225]
         transform = GeneralizedRCNNTransform(min_size, max_size, image_mean, image_std)
+        ###########################################################
 
         super(Jde_RCNN, self).__init__(backbone, rpn, roi_heads, transform)
+        ## FIXME 跟踪时用的参数，与训练无关
         self.version = version
         self.original_image_sizes = None
         self.preprocessed_images = None
         self.features = None
         self.box_features = None
     
-
+    ## FIXME 以下几个函数都是跟踪时用的，与训练无关
     def detect(self):
         device = list(self.parameters())[0].device
         images = self.preprocessed_images
@@ -293,7 +298,7 @@ class JDE_RoIHeads(RoIHeads):
         self.len_embeddings = len_embeddings
         self.identifier = nn.Linear(len_embeddings, num_ID)
 
-        # # TODO
+        ## FIXME 训练v1模型的时候，下面三个用不到
         self.s_c = nn.Parameter(-4.15*torch.ones(1))  # -4.15
         self.s_r = nn.Parameter(-4.85*torch.ones(1))  # -4.85
         self.s_id = nn.Parameter(-2.3*torch.ones(1))  # -2.3
@@ -367,7 +372,7 @@ class JDE_RoIHeads(RoIHeads):
         return result, losses
 
         
-    
+    ## FIXME 在faster_rcnn损失的基础上，加入了计算reid的损失
     def JDE_loss(self, class_logits, box_regression, embeddings, labels, regression_targets, ids):
         labels = torch.cat(labels, dim=0)
         regression_targets = torch.cat(regression_targets, dim=0)
