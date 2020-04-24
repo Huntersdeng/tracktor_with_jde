@@ -58,8 +58,20 @@ def train(
     #paths = {'CT':'./data/detect/CT_train.txt', 
     #         'ETH':'./data/detect/ETH.txt', 'M16':'./data/detect/MOT16_train.txt', 
     #         'PRW':'./data/detect/PRW_train.txt', 'CP':'./data/detect/cp_train.txt'}
-    paths_trainset = {'M16':'./data/detect/MOT16_train.txt'}
-    paths_valset = {'M16':'./data/detect/MOT16_val.txt'}
+    paths_trainset =  {'02':'./tracktor_with_jde/data/track/train/MOT16-02.txt',
+                       '04':'./tracktor_with_jde/data/track/train/MOT16-04.txt',
+                       '05':'./tracktor_with_jde/data/track/train/MOT16-05.txt',
+                       '09':'./tracktor_with_jde/data/track/train/MOT16-09.txt',
+                       '10':'./tracktor_with_jde/data/track/train/MOT16-10.txt',
+                       '11':'./tracktor_with_jde/data/track/train/MOT16-11.txt',
+                       '13':'./tracktor_with_jde/data/track/train/MOT16-13.txt'}
+    paths_valset =    {'02':'./tracktor_with_jde/data/track/val/MOT16-02.txt',
+                       '04':'./tracktor_with_jde/data/track/val/MOT16-04.txt',
+                       '05':'./tracktor_with_jde/data/track/val/MOT16-05.txt',
+                       '09':'./tracktor_with_jde/data/track/val/MOT16-09.txt',
+                       '10':'./tracktor_with_jde/data/track/val/MOT16-10.txt',
+                       '11':'./tracktor_with_jde/data/track/val/MOT16-11.txt',
+                       '13':'./tracktor_with_jde/data/track/val/MOT16-13.txt'}
     transforms = T.Compose([T.ToTensor()])
     trainset = JointDataset(root=root, paths=paths_trainset, img_size=img_size, augment=True, transforms=transforms)
     valset = JointDataset(root=root, paths=paths_valset, img_size=img_size, augment=False, transforms=transforms)
