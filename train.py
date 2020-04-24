@@ -15,7 +15,7 @@ from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
 from utils.datasets import LoadImagesAndLabels, collate_fn, JointDataset, letterbox, random_affine
 from utils.scheduler import GradualWarmupScheduler
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
-from model import Jde_RCNN
+from model2 import Jde_RCNN
 
 import cv2
 import matplotlib.pyplot as plt
@@ -136,8 +136,8 @@ def train(
                 scheduler_warmup_rpn.step(epoch, None)
                 print(scheduler_warmup_rpn.get_lr())
             else:
-                mean_mAP, _, _ = test(model, dataloader_valset, print_interval=100)
-                #tar_at_far = test_emb(model, dataloader_valset, print_interval=100)[-1]
+                #mean_mAP, _, _ = test(model, dataloader_valset, print_interval=100)
+                tar_at_far = test_emb(model, dataloader_valset, print_interval=50)[-1]
                 scheduler_warmup_roi.step(epoch, None)
                 print(scheduler_warmup_roi.get_lr())
 
