@@ -93,8 +93,8 @@ def train(
     optimizer_rpn = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9, weight_decay=5e-4)
     optimizer_roi = torch.optim.SGD(filter(lambda x: x.requires_grad, model.roi_heads.parameters()), lr=opt.lr, momentum=.9, weight_decay=5e-4)
     # optimizer_reid = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9)
-    after_scheduler_rpn = StepLR(optimizer_rpn, 3, 0.4)
-    after_scheduler_roi = StepLR(optimizer_roi, 3, 0.4)
+    after_scheduler_rpn = StepLR(optimizer_rpn, 10, 0.1)
+    after_scheduler_roi = StepLR(optimizer_roi, 10, 0.1)
 
     scheduler_warmup_rpn = GradualWarmupScheduler(optimizer_rpn, multiplier=8, total_epoch=5, after_scheduler=after_scheduler_rpn)
     scheduler_warmup_roi = GradualWarmupScheduler(optimizer_roi, multiplier=8, total_epoch=10, after_scheduler=after_scheduler_roi)
