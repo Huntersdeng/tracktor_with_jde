@@ -344,6 +344,7 @@ class JDE_RoIHeads(RoIHeads):
             loss_total = torch.exp(-self.s_r)*loss_box_reg + torch.exp(-self.s_c)*loss_classifier + torch.exp(-self.s_id)*loss_reid + \
                    (self.s_r + self.s_c + self.s_id)
             losses = dict(loss_total=loss_total, loss_classifier=loss_classifier, loss_box_reg=loss_box_reg, loss_reid=loss_reid)
+ 
         else:
             if self.version == 'v1':
                 boxes, scores, labels = self.postprocess_detections(class_logits, box_regression, proposals, image_shapes)
