@@ -51,7 +51,7 @@ class Jde_RCNN(GeneralizedRCNN):
 
         out_channels = backbone.out_channels
         emb_scale = math.sqrt(2) * math.log(num_ID-1) if num_ID>1 else 1
-        len_embeddings = 128
+        len_embeddings = 1024
 
         if rpn_anchor_generator is None:
             anchor_sizes = ((32,), (64,), (128,), (256,), (512,))
