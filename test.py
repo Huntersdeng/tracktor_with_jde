@@ -11,7 +11,7 @@ from sklearn import metrics
 from scipy import interpolate
 import torch
 import torch.nn.functional as F
-from model2 import Jde_RCNN
+from model import Jde_RCNN
 from utils.utils import xyxy2xywh, non_max_suppression, ap_per_class, bbox_iou
 from torchvision.transforms import transforms as T
 from utils.datasets import LoadImagesAndLabels, JointDataset, collate_fn

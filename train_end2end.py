@@ -90,11 +90,11 @@ def train(
              'identifier.bias']
     if not train_reid:
         for name, p in model.roi_heads.named_parameters():
-            print(name)
+            #print(name)
             if name in layer:
                 p.requires_grad = False
         optimizer = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9, weight_decay=5e-4)
-        after_scheduler = StepLR(optimizer, 10, 0.1)
+        after_scheduler = StepLR(optimizer, 5, 0.2)
         scheduler = GradualWarmupScheduler(optimizer, multiplier=10, total_epoch=10, after_scheduler=after_scheduler)
     else:
         
@@ -102,7 +102,7 @@ def train(
             if name not in layer:
                 p.requires_grad = False
         optimizer = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9, weight_decay=5e-4)
-        scheduler = StepLR(optimizer, 10, 0.1)
+        scheduler = StepLR(optimizer, 5, 0.2)
 
     if resume:
         checkpoint = torch.load(latest_resume, map_location='cpu')
@@ -124,10 +124,11 @@ def train(
         with torch.no_grad():
             if train_reid:
                 test_emb(model, dataloader_valset, print_interval=50)[-1]
+                scheduler.step(epoch+start_epoch_reid)
             else:
                 test(model, dataloader_valset, print_interval=50)
                 
-            scheduler.step(epoch)
+                scheduler.step(epoch+start_epoch_det)
             print(scheduler.get_lr())
 
         model.cuda().train()
@@ -185,6 +186,7 @@ def train(
         if epoch % save_every == 0 and epoch != 0:
             torch.save(checkpoint, osp.join(weights_path, "weights_epoch_" + str(epoch_det) + '_' + str(epoch_reid) + ".pt"))
         with open(loss_log_path, 'a+') as f:
+            f.write('epoch_det:'+str(epoch_det)+',epoch_reid:'+str(epoch_reid)+'\n')
             json.dump(loss_epoch_log, f) 
             f.write('\n')
 

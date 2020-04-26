@@ -15,7 +15,7 @@ import torchvision
 from torchvision.transforms import transforms as T
 from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
 
-from model2 import Jde_RCNN
+from model import Jde_RCNN
 from tracker import Tracker
 from utils.utils import interpolate, plot_sequence, get_mot_accum, evaluate_mot_accums, write_results
 from utils.datasets import LoadImagesAndLabels
