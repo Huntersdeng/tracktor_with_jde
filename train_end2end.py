@@ -80,7 +80,14 @@ def train(
     # model = torch.nn.DataParallel(model)
     start_epoch_det = 0
     start_epoch_reid = 0
-    layer = ['roi_heads.fc8.weights']
+    layer = ['embed_head.fc8.weight',
+             'embed_head.fc8.bias',
+             'embed_head.fc9.weight,'
+             'embed_head.fc9.bias,'
+             'embed_extractor.extract_embedding.weight,'
+             'embed_extractor.extract_embedding.bias,'
+             'identifier.weight,'
+             'identifier.bias']
     if not train_reid:
         for name, p in model.roi_heads.named_parameters():
             print(name)
@@ -118,7 +125,7 @@ def train(
             if train_reid:
                 test_emb(model, dataloader_valset, print_interval=50)[-1]
             else:
-                test(model, dataloader_valset, print_interval=100)
+                test(model, dataloader_valset, print_interval=50)
                 
             scheduler.step(epoch)
             print(scheduler.get_lr())
