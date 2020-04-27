@@ -20,14 +20,22 @@ from tracker import Tracker
 from utils.utils import interpolate, plot_sequence, get_mot_accum, evaluate_mot_accums, write_results
 from utils.datasets import LoadImages
 
-os.environ['CUDA_VISIBLE_DEVICES']='1'
+parser = argparse.ArgumentParser()
+parser.add_argument('--backbone', type=str, default='resnet50', help='type of backbone')
+parser.add_argument('--img-size', type=int, default=(960,720), nargs='+', help='pixels')
+parser.add_argument('--gpu', type=str, default='0', help='which gpu to use')
+opt = parser.parse_args()
+
+os.environ['CUDA_VISIBLE_DEVICES']=opt.gpu
 root = '/data/dgw/'
 # root = '..'
 output_dir = '../output'
+width = str(opt.img_size[0])
+height = str(opt.img_size[1])
 
 
 print("Initializing object detector.")
-with open('./cfg/test_tracktor.yaml', 'r') as f:
+with open('./cfg/tracktor_'+opt.backbone+'_'+width+'_'+height+'.yaml', 'r') as f:
     tracktor = yaml.load(f,Loader=yaml.FullLoader)['tracktor']
 
 ##########################
