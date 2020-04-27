@@ -94,7 +94,7 @@ def train(
             if name in layer:
                 p.requires_grad = False
         optimizer = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9, weight_decay=5e-4)
-        after_scheduler = StepLR(optimizer, 5, 0.2)
+        after_scheduler = StepLR(optimizer, 10, 0.1)
         scheduler = GradualWarmupScheduler(optimizer, multiplier=10, total_epoch=10, after_scheduler=after_scheduler)
     else:
         
@@ -102,7 +102,7 @@ def train(
             if name not in layer:
                 p.requires_grad = False
         optimizer = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9, weight_decay=5e-4)
-        scheduler = StepLR(optimizer, 5, 0.2)
+        scheduler = StepLR(optimizer, 10, 0.1)
 
     if resume:
         checkpoint = torch.load(latest_resume, map_location='cpu')
@@ -126,7 +126,7 @@ def train(
                 test_emb(model, dataloader_valset, print_interval=50)[-1]
                 scheduler.step(epoch+start_epoch_reid)
             else:
-                test(model, dataloader_valset, print_interval=50)
+                test(model, dataloader_valset, conf_thres=0.9, print_interval=50)
                 
                 scheduler.step(epoch+start_epoch_det)
             print(scheduler.get_lr())

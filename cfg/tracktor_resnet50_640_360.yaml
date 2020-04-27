@@ -2,24 +2,24 @@ tracktor:
   backbone: resnet50
   num_ID: 510
   version: 'v1'
-  weights: ../weights/training/3/resnet50_img_size800_450/latest.pt
+  weights: ../weights/training/3/resnet50_img_size640_360/latest.pt
   dataset: ./data/track/val
-  width: 800
-  height: 450
+  width: 640
+  height: 360
   interpolate: True
   write_images: False
   tracker:
     # FRCNN score threshold for detections
-    detection_person_thresh: 0.9
+    detection_person_thresh: 0.975
     # FRCNN score threshold for keeping the track alive
-    regression_person_thresh: 0.5
+    regression_person_thresh: 0.9
     # NMS threshold for detection
-    detection_nms_thresh: 0.3
+    detection_nms_thresh: 0.6
     # NMS theshold while tracking
-    regression_nms_thresh: 0.6
+    regression_nms_thresh: 0.4
     # motion model settings
     motion_model:
-      enabled: False
+      enabled: True
       # average velocity over last n_steps steps
       n_steps: 5
       # if true, only model the movement of the bounding box center. If false, width and height are also modeled.
@@ -38,10 +38,10 @@ tracktor:
     # Threshold increment between two iterations (original 0.001)
     termination_eps: 0.00001
     # Use siamese network to do reid
-    do_reid: False
+    do_reid: True
     # How much timesteps dead tracks are kept and cosidered for reid
     inactive_patience: 10
     # How similar do image and old track need to be to be considered the same person
-    reid_sim_threshold: 8
+    reid_sim_threshold: 10
     # How much IoU do track and image need to be considered for matching
     reid_iou_threshold: 0.1
