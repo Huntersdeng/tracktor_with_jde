@@ -3,6 +3,7 @@ import time
 from os import path as osp
 import yaml
 from tqdm import tqdm
+import argparse
 
 import numpy as np
 import torch
@@ -15,7 +16,7 @@ import torchvision
 from torchvision.transforms import transforms as T
 from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
 
-from model2 import Jde_RCNN
+from model import Jde_RCNN
 from tracker import Tracker
 from utils.utils import interpolate, plot_sequence, get_mot_accum, evaluate_mot_accums, write_results
 from utils.datasets import LoadImages
@@ -35,7 +36,7 @@ height = str(opt.img_size[1])
 
 
 print("Initializing object detector.")
-with open('./cfg/tracktor_'+opt.backbone+'_'+width+'_'+height+'.yaml', 'r') as f:
+with open('./cfg/test_tracktor.yaml', 'r') as f:
     tracktor = yaml.load(f,Loader=yaml.FullLoader)['tracktor']
 
 ##########################
