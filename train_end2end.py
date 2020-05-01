@@ -151,6 +151,8 @@ def train(
                 target = {}
                 if target_len==0:
                     flag = True
+                if np.all(label[0:int(target_len), 1]==-1):
+                    flag = True
                 target['boxes'] = label[0:int(target_len), 2:6]
                 target['ids'] = (label[0:int(target_len), 1]).long()
                 target['labels'] = torch.ones_like(target['ids'])
