@@ -37,7 +37,7 @@ height = str(opt.img_size[1])
 
 
 print("Initializing object detector.")
-with open('./cfg/test_tracktor.yaml', 'r') as f:
+with open('./cfg/tracktor_'+opt.backbone+'_'+width+'_'+height+'.yaml', 'r') as f:
     tracktor = yaml.load(f,Loader=yaml.FullLoader)['tracktor']
 
 img_size = (tracktor['width'], tracktor['height'])
