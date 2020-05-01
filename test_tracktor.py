@@ -24,6 +24,7 @@ from utils.datasets import LoadImages
 parser = argparse.ArgumentParser()
 parser.add_argument('--backbone', type=str, default='resnet50', help='type of backbone')
 parser.add_argument('--img-size', type=int, default=(960,720), nargs='+', help='pixels')
+parser.add_argument('--with-labels', action='store_true', help='for valset')
 parser.add_argument('--gpu', type=str, default='0', help='which gpu to use')
 opt = parser.parse_args()
 
@@ -39,19 +40,21 @@ print("Initializing object detector.")
 with open('./cfg/test_tracktor.yaml', 'r') as f:
     tracktor = yaml.load(f,Loader=yaml.FullLoader)['tracktor']
 
+img_size = (tracktor['width'], tracktor['height'])
+with_dets = tracktor['tracker']['public_detections']
+
 ##########################
 # Initialize the modules #
 ##########################
 
 # object detection
-img_size = (tracktor['width'], tracktor['height'])
 backbone = resnet_fpn_backbone(tracktor['backbone'], True)
 backbone.out_channels = 256
 obj_detect = Jde_RCNN(backbone, num_ID=tracktor['num_ID'], min_size=img_size[1], max_size=img_size[0], version=tracktor['version'])
 checkpoint = torch.load(tracktor['weights'], map_location='cpu')['model']
-if tracktor['version']=='v2':
-    checkpoint['roi_heads.embed_extractor.extract_embedding.weight'] = checkpoint['roi_heads.box_predictor.extract_embedding.weight']
-    checkpoint['roi_heads.embed_extractor.extract_embedding.bias'] = checkpoint['roi_heads.box_predictor.extract_embedding.bias']
+# if tracktor['version']=='v2':
+#     checkpoint['roi_heads.embed_extractor.extract_embedding.weight'] = checkpoint['roi_heads.box_predictor.extract_embedding.weight']
+#     checkpoint['roi_heads.embed_extractor.extract_embedding.bias'] = checkpoint['roi_heads.box_predictor.extract_embedding.bias']
 print(obj_detect.load_state_dict(checkpoint, strict=False))
 
 obj_detect.eval()
@@ -71,15 +74,21 @@ for seq_path in os.listdir(tracktor['dataset']):
     start = time.time()
 
     print(f"Tracking: {seq_path}")
-    sequence = LoadImages(osp.join(tracktor['dataset'], seq_path+'/images'), img_size)
+    sequence = LoadImages(osp.join(tracktor['dataset'], seq_path+'/images'), img_size, opt.with_labels, with_dets)
     data_loader = DataLoader(sequence, batch_size=1, shuffle=False)
 
-    for i, (_, frame, _) in enumerate(tqdm(data_loader)):
-        blob = {'img':frame.cuda()}
+    seq = []
+    for i, (_, frame, _, dets, labels) in enumerate(tqdm(data_loader)):
+        blob = {'img':frame.cuda(), 'dets':dets[:,2:6]}
         # blob = {'img':frame}
         with torch.no_grad():
             tracker.step(blob)
         num_frames += 1
+        if opt.with_labels:
+            gt = {}
+            for label in labels[0]:
+                gt[label[1]] = label[2:6]
+            seq.append({'gt':gt})
     results = tracker.get_results()
     time_total += time.time() - start
 
@@ -89,6 +98,9 @@ for seq_path in os.listdir(tracktor['dataset']):
     if tracktor['interpolate']:
         results = interpolate(results)
 
+    if opt.with_labels:
+        mot_accums.append(get_mot_accum(results, seq))
+
     print(f"Writing predictions to: {output_dir}")
     write_results(seq_path.rstrip('.txt'), results, output_dir)
 
@@ -97,6 +109,6 @@ for seq_path in os.listdir(tracktor['dataset']):
 
 print(f"Tracking runtime for all sequences (without evaluation or image writing): "
             f"{time_total:.1f} s ({num_frames / time_total:.1f} Hz)")
-# if mot_accums:
-#     evaluate_mot_accums(mot_accums, [str(s) for s in os.listdir(tracktor['dataset'])], generate_overall=True)
-    # evaluate_mot_accums(mot_accums, ['a'], generate_overall=True)
+if opt.with_labels:
+    evaluate_mot_accums(mot_accums, [str(s) for s in os.listdir(tracktor['dataset'])], generate_overall=True)
+    evaluate_mot_accums(mot_accums, ['a'], generate_overall=True)
