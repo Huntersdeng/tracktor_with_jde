@@ -32,9 +32,9 @@ class Tracker:
 		self.do_align = tracker_cfg['do_align']
 		self.motion_model_cfg = tracker_cfg['motion_model']
 
-		# self.warp_mode = eval(tracker_cfg['warp_mode'])
-		# self.number_of_iterations = tracker_cfg['number_of_iterations']
-		# self.termination_eps = tracker_cfg['termination_eps']
+		self.warp_mode = eval(tracker_cfg['warp_mode'])
+		self.number_of_iterations = tracker_cfg['number_of_iterations']
+		self.termination_eps = tracker_cfg['termination_eps']
 
 		self.tracks = []
 		self.inactive_tracks = []

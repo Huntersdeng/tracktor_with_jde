@@ -2,7 +2,7 @@ tracktor:
   backbone: resnet50
   num_ID: 510
   version: 'v1'
-  weights: ../weights/training/3/resnet50_img_size640_360/latest.pt
+  weights: ../weights/training/mot16/resnet50_img_size640_360/latest.pt
   dataset: ./data/track/val
   width: 640
   height: 360
@@ -19,7 +19,7 @@ tracktor:
     regression_nms_thresh: 0.4
     # motion model settings
     motion_model:
-      enabled: True
+      enabled: False
       # average velocity over last n_steps steps
       n_steps: 5
       # if true, only model the movement of the bounding box center. If false, width and height are also modeled.

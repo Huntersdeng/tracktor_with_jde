@@ -187,6 +187,7 @@ if __name__ == '__main__':
     parser.add_argument('--print-interval', type=int, default=10, help='size of each image dimension')
     parser.add_argument('--test-emb', action='store_true', help='test embedding')
     parser.add_argument('--test-trainset', action='store_true', help='test trainset')
+    parser.add_argument('--len-embed', type=int, default=128, help='length of embeddings')
     
     opt = parser.parse_args()
     print(opt, end='\n\n')
@@ -202,7 +203,7 @@ if __name__ == '__main__':
     backbone.out_channels = 256
     # model = FRCNN_FPN(num_classes=2)
 
-    model = Jde_RCNN(backbone, num_ID=cfg['num_ID'], min_size=img_size[1], max_size=img_size[0])
+    model = Jde_RCNN(backbone, num_ID=cfg['num_ID'], min_size=img_size[1], max_size=img_size[0],len_embeddings=opt.len_embed)
     #model = Jde_RCNN(backbone, num_ID=cfg['num_ID'])
     #model = torch.nn.DataParallel(model)
     checkpoint = torch.load(weights, map_location='cpu')['model']
