@@ -47,29 +47,6 @@ def train(
     #paths = {'CT':'./data/detect/CT_train.txt', 
     #         'ETH':'./data/detect/ETH.txt', 'M16':'./data/detect/MOT16_train.txt', 
     #         'PRW':'./data/detect/PRW_train.txt', 'CP':'./data/detect/cp_train.txt'}
-<<<<<<< HEAD
-    paths_trainset =  {'02':'./data/track/train/MOT16-02.txt',
-                       '04':'./data/track/train/MOT16-04.txt',
-                       '05':'./data/track/train/MOT16-05.txt',
-                       '09':'./data/track/train/MOT16-09.txt',
-                       '10':'./data/track/train/MOT16-10.txt',
-                       '11':'./data/track/train/MOT16-11.txt',
-                       '13':'./data/track/train/MOT16-13.txt',
-                       'CT':'./data/detect/CT_train.txt', 
-                       'ETH':'./data/detect/ETH.txt',
-                       'PRW':'./data/detect/PRW_train.txt', 
-                       'CP':'./data/detect/cp_train.txt'}
-    paths_valset =    {'02':'./data/track/val/MOT16-02.txt',
-                       '04':'./data/track/val/MOT16-04.txt',
-                       '05':'./data/track/val/MOT16-05.txt',
-                       '09':'./data/track/val/MOT16-09.txt',
-                       '10':'./data/track/val/MOT16-10.txt',
-                       '11':'./data/track/val/MOT16-11.txt',
-                       '13':'./data/track/val/MOT16-13.txt',
-                       'CP':'./data/detect/cp_val.txt',
-                       'PRW':'./data/detect/PRW_val.txt',
-                       'CT':'./data/detect/CT_val.txt'}
-=======
     if opt.all_datasets:
         paths_trainset =  {'02':'./data/track/train/MOT16-02.txt',
                         '04':'./data/track/train/MOT16-04.txt',
@@ -107,7 +84,6 @@ def train(
                         '10':'./data/track/val/MOT16-10.txt',
                         '11':'./data/track/val/MOT16-11.txt',
                         '13':'./data/track/val/MOT16-13.txt'}
->>>>>>> f27ee630df85d97822a1667d41568b35cc521730
     transforms = T.Compose([T.ToTensor()])
     trainset = JointDataset(root=root, paths=paths_trainset, img_size=img_size, augment=True, transforms=transforms)
     valset = JointDataset(root=root, paths=paths_valset, img_size=img_size, augment=False, transforms=transforms)
