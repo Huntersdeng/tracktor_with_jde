@@ -2,7 +2,7 @@ tracktor:
   backbone: resnet50
   num_ID: 510
   version: 'v1'
-  weights: ../weights/training/3/resnet50_img_size800_450/latest.pt
+  weights: ../weights/training/mot16/resnet50_img_size800_450/latest.pt
   dataset: ./data/track/val
   width: 800
   height: 450
@@ -30,7 +30,7 @@ tracktor:
     # How much last appearance features are to keep
     max_features_num: 10
     # Do camera motion compensation
-    do_align: False
+    do_align: True
     # Which warp mode to use (cv2.MOTION_EUCLIDEAN, cv2.MOTION_AFFINE, ...)
     warp_mode: cv2.MOTION_EUCLIDEAN
     # maximal number of iterations (original 50)
