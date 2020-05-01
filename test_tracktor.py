@@ -23,7 +23,7 @@ from utils.datasets import LoadImages
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--backbone', type=str, default='resnet50', help='type of backbone')
-parser.add_argument('--img-size', type=int, default=(960,720), nargs='+', help='pixels')
+parser.add_argument('--img-size', type=int, default=(800,450), nargs='+', help='pixels')
 parser.add_argument('--with-labels', action='store_true', help='for valset')
 parser.add_argument('--gpu', type=str, default='0', help='which gpu to use')
 opt = parser.parse_args()
@@ -79,8 +79,8 @@ for seq_path in os.listdir(tracktor['dataset']):
 
     seq = []
     for i, (_, frame, _, dets, labels) in enumerate(tqdm(data_loader)):
-        blob = {'img':frame.cuda(), 'dets':dets[:,2:6]}
-        # blob = {'img':frame}
+        blob = {'img':frame.cuda(), 'dets':dets[0,:,2:6]}
+        # blob = {'img':frame, 'dets':dets[0,:,2:6]}
         with torch.no_grad():
             tracker.step(blob)
         num_frames += 1

@@ -63,7 +63,7 @@ class LoadImages:  # for inference
             det[:, 4] = ratio * (det0[:, 2] + det0[:, 4] / 2) + padw
             det[:, 5] = ratio * (det0[:, 3] + det0[:, 5] / 2) + padh
         else:
-            det = None
+            det = np.array([])
         if self.with_labels:
             label_path = self.labels[self.count]
             label0 = np.loadtxt(label_path, delimiter=',', dtype=np.float32).reshape(-1, 6)
@@ -75,7 +75,7 @@ class LoadImages:  # for inference
             label[:, 4] = ratio * (label0[:, 2] + label0[:, 4] / 2) + padw
             label[:, 5] = ratio * (label0[:, 3] + label0[:, 5] / 2) + padh
         else:
-            label = None
+            label = np.array([])
 
         # Normalize RGB
         img = img[:, :, ::-1].transpose(2, 0, 1)
@@ -105,7 +105,7 @@ class LoadImages:  # for inference
             det[:, 4] = ratio * (det0[:, 2] + det0[:, 4] / 2) + padw
             det[:, 5] = ratio * (det0[:, 3] + det0[:, 5] / 2) + padh
         else:
-            det = None
+            det = np.array([])
         if self.with_labels:
             label_path = self.labels[idx]
             label0 = np.loadtxt(label_path, delimiter=',', dtype=np.float32).reshape(-1, 6)
@@ -117,7 +117,7 @@ class LoadImages:  # for inference
             label[:, 4] = ratio * (label0[:, 2] + label0[:, 4] / 2) + padw
             label[:, 5] = ratio * (label0[:, 3] + label0[:, 5] / 2) + padh
         else:
-            label = None
+            label = np.array([])
 
         # Normalize RGB
         img = img[:, :, ::-1].transpose(2, 0, 1)
