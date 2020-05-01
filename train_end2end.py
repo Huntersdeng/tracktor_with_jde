@@ -47,6 +47,7 @@ def train(
     #paths = {'CT':'./data/detect/CT_train.txt', 
     #         'ETH':'./data/detect/ETH.txt', 'M16':'./data/detect/MOT16_train.txt', 
     #         'PRW':'./data/detect/PRW_train.txt', 'CP':'./data/detect/cp_train.txt'}
+<<<<<<< HEAD
     paths_trainset =  {'02':'./data/track/train/MOT16-02.txt',
                        '04':'./data/track/train/MOT16-04.txt',
                        '05':'./data/track/train/MOT16-05.txt',
@@ -68,6 +69,45 @@ def train(
                        'CP':'./data/detect/cp_val.txt',
                        'PRW':'./data/detect/PRW_val.txt',
                        'CT':'./data/detect/CT_val.txt'}
+=======
+    if opt.all_datasets:
+        paths_trainset =  {'02':'./data/track/train/MOT16-02.txt',
+                        '04':'./data/track/train/MOT16-04.txt',
+                        '05':'./data/track/train/MOT16-05.txt',
+                        '09':'./data/track/train/MOT16-09.txt',
+                        '10':'./data/track/train/MOT16-10.txt',
+                        '11':'./data/track/train/MOT16-11.txt',
+                        '13':'./data/track/train/MOT16-13.txt',
+                          'CT':'./data/detect/CT_train.txt', 
+                          'ETH':'./data/detect/ETH.txt',
+                          'PRW':'./data/detect/PRW_train.txt', 
+                        'CP':'./data/detect/cp_train.txt'}
+        paths_valset =    {'02':'./data/track/val/MOT16-02.txt',
+                        '04':'./data/track/val/MOT16-04.txt',
+                        '05':'./data/track/val/MOT16-05.txt',
+                        '09':'./data/track/val/MOT16-09.txt',
+                        '10':'./data/track/val/MOT16-10.txt',
+                        '11':'./data/track/val/MOT16-11.txt',
+                        '13':'./data/track/val/MOT16-13.txt',
+                        'CP':'./data/detect/cp_val.txt',
+                        'PRW':'./data/detect/PRW_val.txt',
+                        'CT':'./data/detect/CT_val.txt'}
+    else:
+        paths_trainset =  {'02':'./data/track/train/MOT16-02.txt',
+                        '04':'./data/track/train/MOT16-04.txt',
+                        '05':'./data/track/train/MOT16-05.txt',
+                        '09':'./data/track/train/MOT16-09.txt',
+                        '10':'./data/track/train/MOT16-10.txt',
+                        '11':'./data/track/train/MOT16-11.txt',
+                        '13':'./data/track/train/MOT16-13.txt'}
+        paths_valset =    {'02':'./data/track/val/MOT16-02.txt',
+                        '04':'./data/track/val/MOT16-04.txt',
+                        '05':'./data/track/val/MOT16-05.txt',
+                        '09':'./data/track/val/MOT16-09.txt',
+                        '10':'./data/track/val/MOT16-10.txt',
+                        '11':'./data/track/val/MOT16-11.txt',
+                        '13':'./data/track/val/MOT16-13.txt'}
+>>>>>>> f27ee630df85d97822a1667d41568b35cc521730
     transforms = T.Compose([T.ToTensor()])
     trainset = JointDataset(root=root, paths=paths_trainset, img_size=img_size, augment=True, transforms=transforms)
     valset = JointDataset(root=root, paths=paths_valset, img_size=img_size, augment=False, transforms=transforms)
@@ -216,8 +256,10 @@ if __name__ == '__main__':
     parser.add_argument('--resume', action='store_true', help='resume training flag')
     parser.add_argument('--lr', type=float, default=-1.0, help='init lr')
     parser.add_argument('--backbone-name', type=str, default='resnet101', help='backbone name')
+    parser.add_argument('--len-embed', type=int, default=128, help='length of embeddings')
     parser.add_argument('--model-version', type=str, default='v1', help='model')
     parser.add_argument('--gpu', type=str, default='0', help='which gpu to use')
+    parser.add_argument('--all-datasets', action='store_true', help='training with all the datasets')
     opt = parser.parse_args()
 
     init_seeds()

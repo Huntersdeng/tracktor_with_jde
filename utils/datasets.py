@@ -21,7 +21,7 @@ class LoadImages:  # for inference
         elif os.path.isfile(path):
             self.files = [path]
         if with_labels:
-            self.labels = [path.replace('images','images_with_ids').replace('.png', '.txt').replace('.jpg', '.txt') 
+            self.labels = [path.replace('images','labels_with_ids').replace('.png', '.txt').replace('.jpg', '.txt') 
                            for path in self.files]
         if with_dets:
             self.dets = [path.replace('images','dets_without_ids').replace('.png', '.txt').replace('.jpg', '.txt') 
