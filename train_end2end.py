@@ -216,6 +216,7 @@ if __name__ == '__main__':
     parser.add_argument('--resume', action='store_true', help='resume training flag')
     parser.add_argument('--lr', type=float, default=-1.0, help='init lr')
     parser.add_argument('--backbone-name', type=str, default='resnet101', help='backbone name')
+    parser.add_argument('--len-embed', type=int, default=128, help='length of embeddings')
     parser.add_argument('--model-version', type=str, default='v1', help='model')
     parser.add_argument('--gpu', type=str, default='0', help='which gpu to use')
     opt = parser.parse_args()
