@@ -155,7 +155,11 @@ class Jde_RCNN(GeneralizedRCNN):
         device = list(self.parameters())[0].device
         boxes = boxes.to(device)
 
-        boxes = resize_boxes(boxes, self.original_image_sizes[0], self.preprocessed_images.image_sizes[0])
+        try:
+            boxes = resize_boxes(boxes, self.original_image_sizes[0], self.preprocessed_images.image_sizes[0])
+        except IndexError:
+            print(boxes.size())
+            raise IndexError
         proposals = [boxes]
 
         box_features = self.roi_heads.box_roi_pool(self.features, proposals, self.preprocessed_images.image_sizes)

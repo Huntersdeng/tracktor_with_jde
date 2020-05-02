@@ -79,7 +79,7 @@ for seq_path in os.listdir(tracktor['dataset']):
 
     seq = []
     for i, (_, frame, _, dets, labels) in enumerate(tqdm(data_loader)):
-        blob = {'img':frame.cuda(), 'dets':dets[0,:,2:6]}
+        blob = {'img':frame.cuda(), 'dets':dets[:,:,2:6]}
         # blob = {'img':frame, 'dets':dets[0,:,2:6]}
         with torch.no_grad():
             tracker.step(blob)
@@ -111,4 +111,3 @@ print(f"Tracking runtime for all sequences (without evaluation or image writing)
             f"{time_total:.1f} s ({num_frames / time_total:.1f} Hz)")
 if opt.with_labels:
     evaluate_mot_accums(mot_accums, [str(s) for s in os.listdir(tracktor['dataset'])], generate_overall=True)
-    evaluate_mot_accums(mot_accums, ['a'], generate_overall=True)
