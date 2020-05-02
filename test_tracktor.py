@@ -19,7 +19,7 @@ from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
 from model import Jde_RCNN
 from tracker import Tracker
 from utils.utils import interpolate, plot_sequence, get_mot_accum, evaluate_mot_accums, write_results
-from utils.datasets import LoadImages
+from utils.datasets import LoadImagesAndDets
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--backbone', type=str, default='resnet50', help='type of backbone')
@@ -74,7 +74,7 @@ for seq_path in os.listdir(tracktor['dataset']):
     start = time.time()
 
     print(f"Tracking: {seq_path}")
-    sequence = LoadImages(osp.join(tracktor['dataset'], seq_path+'/images'), img_size, opt.with_labels, with_dets)
+    sequence = LoadImagesAndDets(root, osp.join(tracktor['dataset'], seq_path), img_size, opt.with_labels, with_dets)
     data_loader = DataLoader(sequence, batch_size=1, shuffle=False)
 
     seq = []
