@@ -97,7 +97,7 @@ def train(
     backbone = resnet_fpn_backbone(opt.backbone_name, True)
     backbone.out_channels = 256
 
-    model = Jde_RCNN(backbone, num_ID=trainset.nID, min_size=img_size[1], max_size=img_size[0], version=opt.model_version, len_embeddings=256)
+    model = Jde_RCNN(backbone, num_ID=trainset.nID, min_size=img_size[1], max_size=img_size[0], version=opt.model_version, len_embeddings=opt.len_embed)
     model.cuda().train()
 
     # model = torch.nn.DataParallel(model)
@@ -149,7 +149,7 @@ def train(
                 test_emb(model, dataloader_valset, print_interval=50)[-1]
                 scheduler.step(epoch+start_epoch_reid)
             else:
-                test(model, dataloader_valset, conf_thres=0.9, print_interval=50)
+                test(model, dataloader_valset, conf_thres=0.5, iou_thres=0.2, print_interval=50)
                 
                 scheduler.step(epoch+start_epoch_det)
             print(scheduler.get_lr())
@@ -167,7 +167,7 @@ def train(
                 target = {}
                 if target_len==0:
                     flag = True
-                if np.all(label[0:int(target_len), 1]==-1):
+                if torch.all(label[0:int(target_len), 1]==-1):
                     flag = True
                 target['boxes'] = label[0:int(target_len), 2:6]
                 target['ids'] = (label[0:int(target_len), 1]).long()

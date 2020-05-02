@@ -23,8 +23,7 @@ class LoadImages:  # for inference
         if with_labels:
             self.labels = [path.replace('images','labels_with_ids').replace('.png', '.txt').replace('.jpg', '.txt') 
                            for path in self.files]
-        if with_dets:
-            self.dets = [path.replace('images','dets_without_ids').replace('.png', '.txt').replace('.jpg', '.txt') 
+        self.dets = [path.replace('images','dets_without_ids').replace('.png', '.txt').replace('.jpg', '.txt') 
                          for path in self.files]
 
         self.nF = len(self.files)  # number of image files
@@ -52,18 +51,18 @@ class LoadImages:  # for inference
 
         # Padded resize
         img, ratio, padw, padh = letterbox(img0, height=self.height, width=self.width)
-        if self.with_dets:
-            det_path = self.dets[self.count]
-            det0 = np.loadtxt(det_path, delimiter=',', dtype=np.float32).reshape(-1, 6)
+        
+        det_path = self.dets[self.count]
+        det0 = np.loadtxt(det_path, delimiter=',', dtype=np.float32).reshape(-1, 6)
 
-            # Normalized xywh to pixel xyxy format
-            det = det0.copy()
-            det[:, 2] = ratio * (det0[:, 2] - det0[:, 4] / 2) + padw
-            det[:, 3] = ratio * (det0[:, 3] - det0[:, 5] / 2) + padh
-            det[:, 4] = ratio * (det0[:, 2] + det0[:, 4] / 2) + padw
-            det[:, 5] = ratio * (det0[:, 3] + det0[:, 5] / 2) + padh
-        else:
-            det = np.array([])
+        # Normalized xywh to pixel xyxy format
+        det = det0.copy()
+        det[:, 2] = ratio * (det0[:, 2] - det0[:, 4] / 2) + padw
+        det[:, 3] = ratio * (det0[:, 3] - det0[:, 5] / 2) + padh
+        det[:, 4] = ratio * (det0[:, 2] + det0[:, 4] / 2) + padw
+        det[:, 5] = ratio * (det0[:, 3] + det0[:, 5] / 2) + padh
+        
+        
         if self.with_labels:
             label_path = self.labels[self.count]
             label0 = np.loadtxt(label_path, delimiter=',', dtype=np.float32).reshape(-1, 6)
@@ -94,18 +93,17 @@ class LoadImages:  # for inference
 
         # Padded resize
         img, ratio, padw, padh = letterbox(img0, height=self.height, width=self.width)
-        if self.with_dets:
-            det_path = self.dets[idx]
-            det0 = np.loadtxt(det_path, delimiter=',', dtype=np.float32).reshape(-1, 6)
+        
+        det_path = self.dets[idx]
+        det0 = np.loadtxt(det_path, delimiter=',', dtype=np.float32).reshape(-1, 6)
 
-            # Normalized xywh to pixel xyxy format
-            det = det0.copy()
-            det[:, 2] = ratio * (det0[:, 2] - det0[:, 4] / 2) + padw
-            det[:, 3] = ratio * (det0[:, 3] - det0[:, 5] / 2) + padh
-            det[:, 4] = ratio * (det0[:, 2] + det0[:, 4] / 2) + padw
-            det[:, 5] = ratio * (det0[:, 3] + det0[:, 5] / 2) + padh
-        else:
-            det = np.array([])
+        # Normalized xywh to pixel xyxy format
+        det = det0.copy()
+        det[:, 2] = ratio * (det0[:, 2] - det0[:, 4] / 2) + padw
+        det[:, 3] = ratio * (det0[:, 3] - det0[:, 5] / 2) + padh
+        det[:, 4] = ratio * (det0[:, 2] + det0[:, 4] / 2) + padw
+        det[:, 5] = ratio * (det0[:, 3] + det0[:, 5] / 2) + padh
+
         if self.with_labels:
             label_path = self.labels[idx]
             label0 = np.loadtxt(label_path, delimiter=',', dtype=np.float32).reshape(-1, 6)
