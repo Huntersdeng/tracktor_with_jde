@@ -129,6 +129,75 @@ class LoadImages:  # for inference
     def __len__(self):
         return self.nF  # number of files
 
+class LoadImagesAndDets:  # for training
+    def __init__(self, root, path, img_size=(1088,608), with_labels=True, with_dets=False):
+        with open(path, 'r') as file:
+            self.img_files = file.readlines()
+            self.img_files = [x.replace('\n', '') for x in self.img_files]
+            self.img_files = list(filter(lambda x: len(x) > 0, self.img_files))
+
+        if with_labels:
+            self.label_files = [path.replace('images','labels_with_ids').replace('.png', '.txt').replace('.jpg', '.txt') 
+                           for path in self.img_files]
+        if with_dets:
+            self.det_files = [path.replace('images','dets_without_ids').replace('.png', '.txt').replace('.jpg', '.txt') 
+                         for path in self.img_files]
+
+        self.root = root
+        self.nF = len(self.img_files)  # number of image files
+        self.width = img_size[0]
+        self.height = img_size[1]
+        self.with_labels = with_labels
+        self.with_dets = with_dets
+
+
+    def __getitem__(self, files_index):
+        img_path = osp.join(self.root, self.img_files[files_index])
+        label_path = osp.join(self.root, self.label_files[files_index]) if self.with_labels else None
+        det_path = osp.path(self.root, self.det_files[files_index]) if self.with_dets else None
+        return self.get_data(img_path, label_path, det_path)
+
+    def get_data(self, img_path, label_path, det_path):
+
+        # Read image
+        img0 = cv2.imread(img_path)  # BGR
+        assert img0 is not None, 'Failed to load ' + img_path
+
+        # Padded resize
+        img, ratio, padw, padh = letterbox(img0, height=self.height, width=self.width)
+        if self.with_dets:
+            det0 = np.loadtxt(det_path, delimiter=',', dtype=np.float32).reshape(-1, 6)
+
+            # Normalized xywh to pixel xyxy format
+            det = det0.copy()
+            det[:, 2] = ratio * (det0[:, 2] - det0[:, 4] / 2) + padw
+            det[:, 3] = ratio * (det0[:, 3] - det0[:, 5] / 2) + padh
+            det[:, 4] = ratio * (det0[:, 2] + det0[:, 4] / 2) + padw
+            det[:, 5] = ratio * (det0[:, 3] + det0[:, 5] / 2) + padh
+        else:
+            det = np.array([])
+        if self.with_labels:
+            label0 = np.loadtxt(label_path, delimiter=',', dtype=np.float32).reshape(-1, 6)
+
+            # Normalized xywh to pixel xyxy format
+            label = label0.copy()
+            label[:, 2] = ratio * (label0[:, 2] - label0[:, 4] / 2) + padw
+            label[:, 3] = ratio * (label0[:, 3] - label0[:, 5] / 2) + padh
+            label[:, 4] = ratio * (label0[:, 2] + label0[:, 4] / 2) + padw
+            label[:, 5] = ratio * (label0[:, 3] + label0[:, 5] / 2) + padh
+        else:
+            label = np.array([])
+
+        # Normalize RGB
+        img = img[:, :, ::-1].transpose(2, 0, 1)
+        img = np.ascontiguousarray(img, dtype=np.float32)
+        img /= 255.0
+
+        return img_path, img, img0, det, label
+
+    def __len__(self):
+        return self.nF  # number of batches
+
 
 class LoadVideo:  # for inference
     def __init__(self, path, img_size=(1088, 608)):
