@@ -18,7 +18,6 @@ from model import Jde_RCNN
 def train(
         save_path,
         save_every,
-        train_reid,
         img_size,
         resume,
         epochs,
@@ -44,9 +43,6 @@ def train(
     # root = '/home/hunter/Document/torch'
     root = '/data/dgw'
 
-    #paths = {'CT':'./data/detect/CT_train.txt', 
-    #         'ETH':'./data/detect/ETH.txt', 'M16':'./data/detect/MOT16_train.txt', 
-    #         'PRW':'./data/detect/PRW_train.txt', 'CP':'./data/detect/cp_train.txt'}
     if opt.all_datasets:
         paths_trainset =  {'02':'./data/track/train/MOT16-02.txt',
                         '04':'./data/track/train/MOT16-04.txt',
@@ -101,34 +97,11 @@ def train(
     model.cuda().train()
 
     # model = torch.nn.DataParallel(model)
-    start_epoch_det = 0
-    start_epoch_reid = 0
-    layer = ['roi_heads.embed_head.fc8.weight',
-             'roi_heads.embed_head.fc8.bias',
-             'roi_heads.embed_head.fc9.weight',
-             'roi_heads.embed_head.fc9.bias',
-             'roi_heads.embed_extractor.extract_embedding.weight',
-             'roi_heads.embed_extractor.extract_embedding.bias',
-             'roi_heads.identifier.weight',
-             'roi_heads.identifier.bias']
-    if not train_reid:
-        for name, p in model.named_parameters():
-            #print(name)
-            if name in layer:
-                p.requires_grad = False
-        optimizer = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9, weight_decay=5e-4)
-        after_scheduler = StepLR(optimizer, 10, 0.1)
-        scheduler = GradualWarmupScheduler(optimizer, multiplier=10, total_epoch=10, after_scheduler=after_scheduler)
-    else:
-        
-        for name, p in model.named_parameters():
-            if name not in layer:
-                p.requires_grad = False
-        optimizer = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9, weight_decay=5e-4)
-        scheduler = StepLR(optimizer, 10, 0.1)
-    for name, p in model.named_parameters():
-        if p.requires_grad:
-            print(name)
+    start_epoch = 0
+
+    optimizer = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9, weight_decay=5e-4)
+    after_scheduler = StepLR(optimizer, 10, 0.1)
+    scheduler = GradualWarmupScheduler(optimizer, multiplier=10, total_epoch=10, after_scheduler=after_scheduler)
 
     if resume:
         checkpoint = torch.load(latest_resume, map_location='cpu')
@@ -136,8 +109,7 @@ def train(
         # Load weights to resume from
         print(model.load_state_dict(checkpoint['model'],strict=False))
         
-        start_epoch_det = checkpoint['epoch_det'] + 1
-        start_epoch_reid = checkpoint['epoch_reid'] + 1
+        start_epoch = checkpoint['epoch_det']
 
         del checkpoint  # current, saved
         
@@ -148,14 +120,11 @@ def train(
     for epoch in range(epochs):
         model.cuda().eval()
         with torch.no_grad():
-            if train_reid:
+            if epoch%3==0:
                 test_emb(model, dataloader_valset, print_interval=50)[-1]
-                scheduler.step(epoch+start_epoch_reid)
-            else:
                 test(model, dataloader_valset, conf_thres=0.5, iou_thres=0.2, print_interval=50)
-                
-                scheduler.step(epoch+start_epoch_det)
-            print(scheduler.get_lr())
+
+            scheduler.step(epoch+start_epoch)
 
         model.cuda().train()
         print('lr: ', optimizer.param_groups[0]['lr'])
@@ -179,10 +148,7 @@ def train(
             if flag:
                 continue
             losses = model(imgs, targets)
-            if not train_reid:
-                loss = losses['loss_classifier'] + losses['loss_box_reg'] + losses['loss_objectness'] + losses['loss_rpn_box_reg']
-            else:
-                loss = losses['loss_reid']
+            loss = losses['loss_classifier'] + losses['loss_box_reg'] + losses['loss_objectness'] + losses['loss_rpn_box_reg'] + 0.1*losses['loss_reid']
             loss.backward()
 
             if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader_trainset) - 1):
@@ -198,12 +164,8 @@ def train(
         print("loss in epoch %d: "%(epoch))
         print(loss_epoch_log)
                 
-        if not train_reid:
-            epoch_det = epoch + start_epoch_det
-            epoch_reid = start_epoch_reid
-        else:
-            epoch_det = start_epoch_det
-            epoch_reid = epoch + start_epoch_reid
+        epoch_det = epoch + start_epoch
+        epoch_reid = epoch + start_epoch
 
         checkpoint = {'epoch_det': epoch_det,
                       'epoch_reid': epoch_reid,
@@ -230,8 +192,6 @@ if __name__ == '__main__':
                                 '--resume)')
     parser.add_argument('--save-model-after', type=int, default=5,
                         help='Save a checkpoint of model at given interval of epochs')
-    parser.add_argument('--train-reid', action='store_true', help='for training reid')
-    parser.add_argument('--train-jointly', action='store_true', help='for training jointly')
     parser.add_argument('--img-size', type=int, default=(960,720), nargs='+', help='pixels')
     parser.add_argument('--resume', action='store_true', help='resume training flag')
     parser.add_argument('--lr', type=float, default=-1.0, help='init lr')
@@ -247,7 +207,6 @@ if __name__ == '__main__':
     train(
         save_path=opt.save_path,
         save_every=opt.save_model_after,
-        train_reid=opt.train_reid,
         img_size=opt.img_size,
         resume=opt.resume,
         epochs=opt.epochs,
