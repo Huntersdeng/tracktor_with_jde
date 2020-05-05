@@ -2,7 +2,9 @@ import torch
 from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
 from model import Jde_RCNN
 import argparse
-
+import os.path as osp
+import os
+import yaml
 parser = argparse.ArgumentParser()
 parser.add_argument('--weights-path', type=str)
 parser.add_argument('--len-embed', type=int, default=128, help='length of embeddings')
