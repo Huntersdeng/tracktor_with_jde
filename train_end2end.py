@@ -105,14 +105,14 @@ def train(
     start_epoch_reid = 0
     layer = ['roi_heads.embed_head.fc8.weight',
              'roi_heads.embed_head.fc8.bias',
-             'roi_heads.embed_head.fc9.weight,'
-             'roi_heads.embed_head.fc9.bias,'
-             'roi_heads.embed_extractor.extract_embedding.weight,'
-             'roi_heads.embed_extractor.extract_embedding.bias,'
-             'roi_heads.identifier.weight,'
+             'roi_heads.embed_head.fc9.weight',
+             'roi_heads.embed_head.fc9.bias',
+             'roi_heads.embed_extractor.extract_embedding.weight',
+             'roi_heads.embed_extractor.extract_embedding.bias',
+             'roi_heads.identifier.weight',
              'roi_heads.identifier.bias']
     if not train_reid:
-        for name, p in model.roi_heads.named_parameters():
+        for name, p in model.named_parameters():
             #print(name)
             if name in layer:
                 p.requires_grad = False
@@ -126,6 +126,9 @@ def train(
                 p.requires_grad = False
         optimizer = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9, weight_decay=5e-4)
         scheduler = StepLR(optimizer, 10, 0.1)
+    for name, p in model.named_parameters():
+        if p.requires_grad:
+            print(name)
 
     if resume:
         checkpoint = torch.load(latest_resume, map_location='cpu')

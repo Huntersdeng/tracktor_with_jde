@@ -79,7 +79,7 @@ for seq_path in os.listdir(tracktor['dataset']):
 
     seq = []
     for i, (_, frame, _, dets, labels) in enumerate(tqdm(data_loader)):
-        blob = {'img':frame.cuda(), 'dets':dets[:,:,2:6]}
+        blob = {'img':frame.cuda(), 'dets':dets[:,:,2:6]} if with_dets else {'img':frame.cuda(), 'dets':None}
         # blob = {'img':frame, 'dets':dets[0,:,2:6]}
         with torch.no_grad():
             tracker.step(blob)

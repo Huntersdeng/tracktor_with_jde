@@ -152,7 +152,7 @@ class LoadImagesAndDets:  # for training
     def __getitem__(self, files_index):
         img_path = osp.join(self.root, self.img_files[files_index])
         label_path = osp.join(self.root, self.label_files[files_index]) if self.with_labels else None
-        det_path = osp.path(self.root, self.det_files[files_index]) if self.with_dets else None
+        det_path = osp.join(self.root, self.det_files[files_index]) if self.with_dets else None
         return self.get_data(img_path, label_path, det_path)
 
     def get_data(self, img_path, label_path, det_path):
