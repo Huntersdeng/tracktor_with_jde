@@ -148,7 +148,7 @@ def train(
             if flag:
                 continue
             losses = model(imgs, targets)
-            loss = losses['loss_classifier'] + losses['loss_box_reg'] + losses['loss_objectness'] + losses['loss_rpn_box_reg'] + 0.1*losses['loss_reid']
+            loss = losses['loss_classifier'] + losses['loss_box_reg'] + losses['loss_objectness'] + losses['loss_rpn_box_reg'] + 0.4*losses['loss_reid']
             loss.backward()
 
             if ((i + 1) % accumulated_batches == 0) or (i == len(dataloader_trainset) - 1):

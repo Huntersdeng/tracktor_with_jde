@@ -42,6 +42,6 @@ tracktor:
     # How much timesteps dead tracks are kept and cosidered for reid
     inactive_patience: 10
     # How similar do image and old track need to be to be considered the same person
-    reid_sim_threshold: 11
+    reid_sim_threshold: 9
     # How much IoU do track and image need to be considered for matching
     reid_iou_threshold: 0.1
