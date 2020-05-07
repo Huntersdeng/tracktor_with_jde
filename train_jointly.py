@@ -54,7 +54,8 @@ def train(
                           'CT':'./data/detect/CT_train.txt', 
                           'ETH':'./data/detect/ETH.txt',
                           'PRW':'./data/detect/PRW_train.txt', 
-                        'CP':'./data/detect/cp_train.txt'}
+                        'CP':'./data/detect/cp_train.txt',
+                        'CS':'./data/detect/CUHK_train.txt'}
         paths_valset =    {'02':'./data/track/val/MOT16-02.txt',
                         '04':'./data/track/val/MOT16-04.txt',
                         '05':'./data/track/val/MOT16-05.txt',
@@ -64,7 +65,8 @@ def train(
                         '13':'./data/track/val/MOT16-13.txt',
                         'CP':'./data/detect/cp_val.txt',
                         'PRW':'./data/detect/PRW_val.txt',
-                        'CT':'./data/detect/CT_val.txt'}
+                        'CT':'./data/detect/CT_val.txt',
+                        'CS':'./data/detect/CUHK_val.txt'}
     else:
         paths_trainset =  {'02':'./data/track/train/MOT16-02.txt',
                         '04':'./data/track/train/MOT16-04.txt',
