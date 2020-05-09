@@ -457,6 +457,24 @@ def collate_fn(batch):
 
     return imgs, filled_labels, paths, sizes, labels_len.unsqueeze(1)
 
+class LoadImagesAndLabels_2(LoadImagesAndLabels):
+    def __init__(self, root, path, img_size=(1088,608),  augment=False, transforms=None):
+        super(LoadImagesAndLabels_2, self).__init__(root, path, img_size, augment, transforms)
+
+    def __getitem__(self, files_index):
+        if self.img_files[files_index]=='None':
+            files_index += 1
+        img_path1 = osp.join(self.root, self.img_files[files_index])
+        label_path1 = osp.join(self.root, self.label_files[files_index])
+        img_path2 = osp.join(self.root, self.img_files[files_index+1])
+        label_path2 = osp.join(self.root, self.label_files[files_index+1])
+        img1, labels1, img_path1, (h1, w1) = self.get_data(img_path1, label_path1)
+        img2, labels2, img_path2, (h2, w2) = self.get_data(img_path2, label_path2)
+        return [img1, img2], [labels1, labels2], [img_path1, img_path2], [(h1,w1),(h2,w2)]
+
+    def __len__(self):
+        return self.nF-1
+
 
 class JointDataset(LoadImagesAndLabels):  # for training
     def __init__(self, root, paths, img_size=(1088,608), augment=False, transforms=None):

@@ -10,7 +10,7 @@ import torch
 from torchvision.transforms import transforms as T
 from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
 
-from utils.datasets import LoadImagesAndLabels, collate_fn, JointDataset
+from utils.datasets import LoadImagesAndLabels_2, collate_fn, JointDataset
 from utils.scheduler import GradualWarmupScheduler
 from torch.optim.lr_scheduler import StepLR
 from flowTracker import flowTracker
@@ -38,28 +38,19 @@ def train(
         latest_resume = osp.join(weights_path, 'latest.pt')
 
     torch.backends.cudnn.benchmark = True
-    # root = '/home/hunter/Document/torch'
-    root = '/data/dgw'
+    root = '/home/hunter/Document/torch'
+    # root = '/data/dgw'
 
-    #paths = {'CT':'./data/detect/CT_train.txt', 
-    #         'ETH':'./data/detect/ETH.txt', 'M16':'./data/detect/MOT16_train.txt', 
-    #         'PRW':'./data/detect/PRW_train.txt', 'CP':'./data/detect/cp_train.txt'}
-    paths_trainset =  {'02':'./data/track/train+val/MOT16-02.txt',
-                       '04':'./data/track/train+val/MOT16-04.txt',
-                       '05':'./data/track/train+val/MOT16-05.txt',
-                       '09':'./data/track/train+val/MOT16-09.txt',
-                       '10':'./data/track/train+val/MOT16-10.txt',
-                       '11':'./data/track/train+val/MOT16-11.txt',
-                       '13':'./data/track/train+val/MOT16-13.txt'}
+    paths_trainset =  './data/flow/MOT16.txt'
     transforms = T.Compose([T.ToTensor()])
-    trainset = JointDataset(root=root, paths=paths_trainset, img_size=img_size, augment=False, transforms=transforms)
 
-    dataloader_trainset = torch.utils.data.DataLoader(trainset, batch_size=2, shuffle=False,
-                                                num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate_fn)
+    trainset = LoadImagesAndLabels_2(root=root, path=paths_trainset, img_size=img_size, augment=False, transforms=transforms)
+
+    dataloader_trainset = torch.utils.data.DataLoader(trainset, batch_size=1, shuffle=True)
     
     model = flowTracker(img_size)
-    # model.train()
-    model.cuda().train()
+    model.train()
+    # model.cuda().train()
 
     start_epoch = 0
 
@@ -86,11 +77,11 @@ def train(
         print('lr: ', optimizer.param_groups[0]['lr'])
         scheduler.step(epoch)
         loss_epoch_log = 0
-        for i, (imgs, labels, _, _, targets_len) in enumerate(tqdm(dataloader_trainset)):
-            imgs = imgs.cuda()
-            labels = labels.cuda()
-            imgs = torch.cat((imgs[0], imgs[1]), dim=0).unsqueeze(dim=0)
-            boxes, target = labels[0][:int(targets_len[0][0])], labels[1][:int(targets_len[1][0])]
+        for i, (imgs, labels, _, _) in enumerate(tqdm(dataloader_trainset)):
+            # imgs = imgs.cuda()
+            # labels = labels.cuda()
+            imgs = torch.cat((imgs[0], imgs[1]), dim=1)
+            boxes, target = labels[0][0], labels[1][0]
             loss = model(imgs, boxes, target)
             loss.backward()
 
