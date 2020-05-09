@@ -18,7 +18,7 @@ class flowTracker(nn.Module):
         feature = self.flownet(x)
         
         if self.training:
-            boxes, target = match(boxes, target)
+            boxes, target = self.match(boxes, target)
 
         box_feature = [self.box_roi_pool(feature[:,:,int(box[1]):int(box[3]),int(box[0]):int(box[2])]) for box in boxes]
         box_feature = torch.cat(box_feature, dim=0)
@@ -30,22 +30,22 @@ class flowTracker(nn.Module):
 
         return deltaB + boxes
 
-def match(boxes, target):
-    
-    m, n = boxes.shape[0], target.shape[0]
-    idx = torch.zeros((m, n))
-    for i in range(m):
-        for j in range(n):
-            if boxes[i,1]==target[j,1]:
-                idx[i,j] = 1
-                break
-    boxes = boxes[idx.sum(dim=1, dtype=torch.uint8)]
-    target = target[idx.sum(dim=0, dtype=torch.uint8)]
-    boxes = boxes[torch.argsort(boxes[:,1])]
-    target = target[torch.argsort(target[:,1])]
-    boxes = clip_boxes_to_image(boxes[:,2:6], self.img_size)
-    target = clip_boxes_to_image(target[:,2:6], self.img_size)
-    return boxes, target
+    def match(self, boxes, target):
+        
+        m, n = boxes.shape[0], target.shape[0]
+        idx = torch.zeros((m, n))
+        for i in range(m):
+            for j in range(n):
+                if boxes[i,1]==target[j,1]:
+                    idx[i,j] = 1
+                    break
+        boxes = boxes[idx.sum(dim=1, dtype=torch.uint8)]
+        target = target[idx.sum(dim=0, dtype=torch.uint8)]
+        boxes = boxes[torch.argsort(boxes[:,1])]
+        target = target[torch.argsort(target[:,1])]
+        boxes = clip_boxes_to_image(boxes[:,2:6], self.img_size)
+        target = clip_boxes_to_image(target[:,2:6], self.img_size)
+        return boxes, target
 
 
 
