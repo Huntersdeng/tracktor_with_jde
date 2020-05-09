@@ -38,8 +38,8 @@ def train(
         latest_resume = osp.join(weights_path, 'latest.pt')
 
     torch.backends.cudnn.benchmark = True
-    root = '/home/hunter/Document/torch'
-    # root = '/data/dgw'
+    # root = '/home/hunter/Document/torch'
+    root = '/data/dgw'
 
     #paths = {'CT':'./data/detect/CT_train.txt', 
     #         'ETH':'./data/detect/ETH.txt', 'M16':'./data/detect/MOT16_train.txt', 
@@ -58,8 +58,8 @@ def train(
                                                 num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate_fn)
     
     model = flowTracker(img_size)
-    model.train()
-    # model.cuda().train()
+    # model.train()
+    model.cuda().train()
 
     start_epoch = 0
 
@@ -87,8 +87,8 @@ def train(
         scheduler.step(epoch)
         loss_epoch_log = 0
         for i, (imgs, labels, _, _, targets_len) in enumerate(tqdm(dataloader_trainset)):
-            # imgs = imgs.cuda()
-            # labels = labels.cuda()
+            imgs = imgs.cuda()
+            labels = labels.cuda()
             imgs = torch.cat((imgs[0], imgs[1]), dim=0).unsqueeze(dim=0)
             boxes, target = labels[0][:int(targets_len[0][0])], labels[1][:int(targets_len[1][0])]
             loss = model(imgs, boxes, target)
