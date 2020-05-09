@@ -43,8 +43,8 @@ class flowTracker(nn.Module):
         target = target[idx.sum(dim=0, dtype=torch.uint8)]
         boxes = boxes[torch.argsort(boxes[:,1])]
         target = target[torch.argsort(target[:,1])]
-        boxes = clip_boxes_to_image(boxes[:,2:6], self.img_size)
-        target = clip_boxes_to_image(target[:,2:6], self.img_size)
+        boxes = clip_boxes_to_image(boxes[:,2:6], (self.img_size[1], self.img_size[0]))
+        target = clip_boxes_to_image(target[:,2:6], (self.img_size[1], self.img_size[0]))
         return boxes, target
 
 
