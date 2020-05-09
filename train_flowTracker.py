@@ -83,6 +83,8 @@ def train(
             imgs = torch.cat((imgs[0], imgs[1]), dim=1)
             boxes, target = labels[0][0], labels[1][0]
             loss = model(imgs, boxes, target)
+            if loss is None:
+                continue
             loss.backward()
 
         ## print and log the loss
@@ -103,7 +105,7 @@ def train(
             torch.save(checkpoint, osp.join(weights_path, "weights_epoch_" + str(epoch) + ".pt"))
         with open(loss_log_path, 'a+') as f:
             f.write('epoch:'+str(epoch)+'\n')
-            json.dump(loss_epoch_log, f) 
+            json.dump(float(loss_epoch_log), f) 
             f.write('\n')
 
 
