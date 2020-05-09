@@ -58,8 +58,8 @@ def train(
                                                 num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate_fn)
     
     model = flowTracker()
-    model.train()
-    # model.cuda().train()
+    #model.train()
+    model.cuda().train()
 
     start_epoch = 0
 

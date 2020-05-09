@@ -44,8 +44,8 @@ def match(boxes, target):
                 break
     boxes = boxes[idx.sum(dim=0, dtype=torch.uint8)]
     target = target[idx.sum(dim=1, dtype=torch.uint8)]
-    boxes = boxes[np.argsort(boxes[:,1])]
-    target = target[np.argsort(target[:,1])]
+    boxes = boxes[torch.argsort(boxes[:,1])]
+    target = target[torch.argsort(target[:,1])]
     boxes = boxes[:,2:6]
     target = target[:,2:6]
     return boxes, target
