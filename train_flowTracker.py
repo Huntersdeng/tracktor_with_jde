@@ -86,12 +86,16 @@ def train(
         print('lr: ', optimizer.param_groups[0]['lr'])
         scheduler.step(epoch)
         loss_epoch_log = 0
-        for i, (imgs, labels, _, _, targets_len) in enumerate(tqdm(dataloader_trainset)):
+        for i, (imgs, labels, imgs_path, _, targets_len) in enumerate(tqdm(dataloader_trainset)):
+            if i>1685:
+                print(imgs_path)
             imgs = imgs.cuda()
             labels = labels.cuda()
             imgs = torch.cat((imgs[0], imgs[1]), dim=0).unsqueeze(dim=0)
             boxes, target = labels[0][:int(targets_len[0][0])], labels[1][:int(targets_len[1][0])]
             loss = model(imgs, boxes, target)
+            if loss is None:
+                continue
             loss.backward()
 
         ## print and log the loss
@@ -112,7 +116,7 @@ def train(
             torch.save(checkpoint, osp.join(weights_path, "weights_epoch_" + str(epoch) + ".pt"))
         with open(loss_log_path, 'a+') as f:
             f.write('epoch:'+str(epoch)+'\n')
-            json.dump(loss_epoch_log, f) 
+            json.dump(float(loss_epoch_log), f) 
             f.write('\n')
 
 

@@ -21,7 +21,10 @@ class flowTracker(nn.Module):
             boxes, target = self.match(boxes, target)
 
         box_feature = [self.box_roi_pool(feature[:,:,int(box[1]):int(box[3]),int(box[0]):int(box[2])]) for box in boxes]
-        box_feature = torch.cat(box_feature, dim=0)
+        if len(box_feature)>0:
+            box_feature = torch.cat(box_feature, dim=0)
+        else:
+            return None
         box_feature = box_feature.flatten(start_dim=1)
         deltaB = F.relu(self.fc(box_feature))
 
