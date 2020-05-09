@@ -50,7 +50,7 @@ with_dets = tracktor['tracker']['public_detections']
 # object detection
 backbone = resnet_fpn_backbone(tracktor['backbone'], True)
 backbone.out_channels = 256
-obj_detect = Jde_RCNN(backbone, num_ID=tracktor['num_ID'], min_size=img_size[1], max_size=img_size[0], version=tracktor['version'])
+obj_detect = Jde_RCNN(backbone, num_ID=tracktor['num_ID'], min_size=img_size[1], max_size=img_size[0], version=tracktor['version'], len_embeddings=tracktor['len_embed'])
 checkpoint = torch.load(tracktor['weights'], map_location='cpu')['model']
 # if tracktor['version']=='v2':
 #     checkpoint['roi_heads.embed_extractor.extract_embedding.weight'] = checkpoint['roi_heads.box_predictor.extract_embedding.weight']

@@ -1,6 +1,7 @@
 import argparse
 import os
 import os.path as osp
+import warnings
 import json
 import yaml
 from utils.utils import mkdir_if_missing, init_seeds
@@ -14,6 +15,8 @@ from utils.datasets import LoadImagesAndLabels, collate_fn, JointDataset, letter
 from utils.scheduler import GradualWarmupScheduler
 from torch.optim.lr_scheduler import StepLR
 from model import Jde_RCNN
+
+warnings.filterwarnings("ignore")
 
 def train(
         save_path,
