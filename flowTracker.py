@@ -11,7 +11,8 @@ class flowTracker(nn.Module):
         super(flowTracker, self).__init__()
         self.flownet = FlowNetS(input_channels=6)
         self.box_roi_pool = torch.nn.AdaptiveMaxPool2d((7,7), return_indices=False)
-        self.fc = nn.Linear(7**2*2, 4)
+        self.fc1 = nn.Linear(7**2*2, 1024)
+        self.fc2 = nn.Linear(1024, 4)
         self.img_size = img_size
     
     def forward(self, x, boxes, targets=None, img_path=None):
@@ -23,7 +24,7 @@ class flowTracker(nn.Module):
         idx = []
         for box in boxes:
             try:
-                box_feature.append(self.box_roi_pool(feature[:,:,int(box[2]):int(box[4]),int(box[3]):int(box[5])]))
+                box_feature.append(self.box_roi_pool(feature[:,:,int(box[3]):int(box[5]),int(box[2]):int(box[4])]))
                 idx.append(1)
             except RuntimeError:
                 idx.append(0)
@@ -35,7 +36,8 @@ class flowTracker(nn.Module):
         else:
             return None
         box_feature = box_feature.flatten(start_dim=1)
-        deltaB = F.relu(self.fc(box_feature))
+        box_feature = F.relu(self.fc1(box_feature))
+        deltaB = F.relu(self.fc2(box_feature))
 
         if self.training:
             return F.smooth_l1_loss(deltaB, targets[:,2:6]-boxes[:,2:6])
