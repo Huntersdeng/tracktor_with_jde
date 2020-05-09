@@ -57,7 +57,7 @@ def train(
     dataloader_trainset = torch.utils.data.DataLoader(trainset, batch_size=2, shuffle=False,
                                                 num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate_fn)
     
-    model = flowTracker()
+    model = flowTracker(img_size)
     #model.train()
     model.cuda().train()
 

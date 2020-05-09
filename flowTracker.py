@@ -4,13 +4,15 @@ from utils.FlowNetS import FlowNetS
 from torchvision.ops import MultiScaleRoIAlign
 import torch.nn.functional as F
 import numpy as np
+from torchvision.ops.boxes import clip_boxes_to_image
 
 class flowTracker(nn.Module):
-    def __init__(self):
+    def __init__(self, img_size):
         super(flowTracker, self).__init__()
         self.flownet = FlowNetS(input_channels=6)
         self.box_roi_pool = torch.nn.AdaptiveMaxPool2d((7,7), return_indices=False)
         self.fc = nn.Linear(7**2*2, 4)
+        self.img_size = img_size
     
     def forward(self, x, boxes, target=None):
         feature = self.flownet(x)
@@ -41,8 +43,8 @@ def match(boxes, target):
     target = target[idx.sum(dim=0, dtype=torch.uint8)]
     boxes = boxes[torch.argsort(boxes[:,1])]
     target = target[torch.argsort(target[:,1])]
-    boxes = boxes[:,2:6]
-    target = target[:,2:6]
+    boxes = clip_boxes_to_image(boxes[:,2:6], self.img_size)
+    target = clip_boxes_to_image(target[:,2:6], self.img_size)
     return boxes, target
 
 
