@@ -464,6 +464,8 @@ class LoadImagesAndLabels_2(LoadImagesAndLabels):
     def __getitem__(self, files_index):
         if self.img_files[files_index]=='None':
             files_index += 1
+        if self.img_files[files_index+1]=='None':
+            files_index -= 1
         img_path1 = osp.join(self.root, self.img_files[files_index])
         label_path1 = osp.join(self.root, self.label_files[files_index])
         img_path2 = osp.join(self.root, self.img_files[files_index+1])

@@ -14,18 +14,23 @@ class flowTracker(nn.Module):
         self.fc = nn.Linear(7**2*2, 4)
         self.img_size = img_size
     
-    def forward(self, x, boxes, target=None):
+    def forward(self, x, boxes, targets=None, img_path=None):
         feature = self.flownet(x)
         
         if self.training:
-            boxes, target = self.match(boxes, target)
+            boxes, targets = self.match(boxes, targets)
         box_feature = []
-        for box in boxes:
+        idx = []
+        for i, box in enumerate(boxes):
             try:
                 box_feature.append(self.box_roi_pool(feature[:,:,int(box[1]):int(box[3]),int(box[0]):int(box[2])]))
+                idx.append(1)
             except RuntimeError:
-                print(box)
-                continue
+                print(img_path)
+                idx.append(0)
+        idx = torch.tensor(idx, dtype=torch.uint8)
+        targets = targets[idx]
+        boxes = boxes[idx]
         if len(box_feature)>0:
             box_feature = torch.cat(box_feature, dim=0)
         else:
@@ -34,26 +39,30 @@ class flowTracker(nn.Module):
         deltaB = F.relu(self.fc(box_feature))
 
         if self.training:
-            return F.smooth_l1_loss(deltaB, target-boxes)
+            try:
+                loss = F.smooth_l1_loss(deltaB, targets-boxes)
+            except RuntimeError:
+                print(idx)
+            return loss
 
         return deltaB + boxes
 
-    def match(self, boxes, target):
+    def match(self, boxes, targets):
         
-        m, n = boxes.shape[0], target.shape[0]
+        m, n = boxes.shape[0], targets.shape[0]
         idx = torch.zeros((m, n))
         for i in range(m):
             for j in range(n):
-                if boxes[i,1]==target[j,1]:
+                if boxes[i,1]==targets[j,1]:
                     idx[i,j] = 1
                     break
         boxes = boxes[idx.sum(dim=1, dtype=torch.uint8)]
-        target = target[idx.sum(dim=0, dtype=torch.uint8)]
+        targets = targets[idx.sum(dim=0, dtype=torch.uint8)]
         boxes = boxes[torch.argsort(boxes[:,1])]
-        target = target[torch.argsort(target[:,1])]
+        targets = targets[torch.argsort(targets[:,1])]
         boxes = clip_boxes_to_image(boxes[:,2:6], (self.img_size[1], self.img_size[0]))
-        target = clip_boxes_to_image(target[:,2:6], (self.img_size[1], self.img_size[0]))
-        return boxes, target
+        targets = clip_boxes_to_image(targets[:,2:6], (self.img_size[1], self.img_size[0]))
+        return boxes, targets
 
 
 

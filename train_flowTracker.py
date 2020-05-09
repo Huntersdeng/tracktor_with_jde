@@ -39,7 +39,7 @@ def train(
 
     torch.backends.cudnn.benchmark = True
     # root = '/home/hunter/Document/torch'
-    root = '/data/dgw'/
+    root = '/data/dgw'
 
     paths_trainset =  './data/flow/MOT16.txt'
     transforms = T.Compose([T.ToTensor()])
@@ -77,12 +77,12 @@ def train(
         print('lr: ', optimizer.param_groups[0]['lr'])
         scheduler.step(epoch)
         loss_epoch_log = 0
-        for i, (imgs, labels, _, _) in enumerate(tqdm(dataloader_trainset)):
-            imgs = imgs.cuda()
-            labels = labels.cuda()
-            imgs = torch.cat((imgs[0], imgs[1]), dim=1)
-            boxes, target = labels[0][0], labels[1][0]
-            loss = model(imgs, boxes, target)
+        for i, (imgs, labels, img_path, _) in enumerate(tqdm(dataloader_trainset)):
+            
+           
+            imgs = torch.cat((imgs[0], imgs[1]), dim=1).cuda()
+            boxes, target = labels[0][0].cuda(), labels[1][0].cuda()
+            loss = model(imgs, boxes, target, img_path)
             if loss is None:
                 continue
             loss.backward()
