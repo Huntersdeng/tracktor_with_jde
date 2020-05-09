@@ -21,9 +21,9 @@ class flowTracker(nn.Module):
             boxes, targets = self.match(boxes, targets)
         box_feature = []
         idx = []
-        for i, box in enumerate(boxes):
+        for box in boxes:
             try:
-                box_feature.append(self.box_roi_pool(feature[:,:,int(box[1]):int(box[3]),int(box[0]):int(box[2])]))
+                box_feature.append(self.box_roi_pool(feature[:,:,int(box[2]):int(box[4]),int(box[3]):int(box[5])]))
                 idx.append(1)
             except RuntimeError:
                 print(img_path)
@@ -39,13 +39,9 @@ class flowTracker(nn.Module):
         deltaB = F.relu(self.fc(box_feature))
 
         if self.training:
-            try:
-                loss = F.smooth_l1_loss(deltaB, targets-boxes)
-            except RuntimeError:
-                print(idx)
-            return loss
-
-        return deltaB + boxes
+            return F.smooth_l1_loss(deltaB, targets[:,2:6]-boxes[:,2:6])
+        boxes[:,2:6] = deltaB + boxes[:,2:6]
+        return boxes
 
     def match(self, boxes, targets):
         
@@ -60,8 +56,8 @@ class flowTracker(nn.Module):
         targets = targets[idx.sum(dim=0, dtype=torch.uint8)]
         boxes = boxes[torch.argsort(boxes[:,1])]
         targets = targets[torch.argsort(targets[:,1])]
-        boxes = clip_boxes_to_image(boxes[:,2:6], (self.img_size[1], self.img_size[0]))
-        targets = clip_boxes_to_image(targets[:,2:6], (self.img_size[1], self.img_size[0]))
+        boxes[:,2:6] = clip_boxes_to_image(boxes[:,2:6], (self.img_size[1], self.img_size[0]))
+        targets[:,2:6] = clip_boxes_to_image(targets[:,2:6], (self.img_size[1], self.img_size[0]))
         return boxes, targets
 
 

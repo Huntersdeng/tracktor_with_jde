@@ -177,6 +177,17 @@ def test_emb(
         print('TPR@FAR={:.7f}: {:.4f}'.format(fa, tar_at_far[f]))
     return tar_at_far
 
+# def test_flownet(model,
+#             dataloader,
+#             print_interval=40):
+#     for i, (imgs, labels, _, _) in enumerate(tqdm(dataloader_trainset)):
+#         imgs = imgs.cuda()
+#         labels = labels.cuda()
+#         imgs = torch.cat((imgs[0], imgs[1]), dim=1)
+#         boxes, target = labels[0][0], labels[1][0]
+#         boxes_pred = model(imgs, boxes)
+        
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='test.py')
