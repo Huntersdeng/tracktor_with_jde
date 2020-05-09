@@ -26,7 +26,6 @@ class flowTracker(nn.Module):
                 box_feature.append(self.box_roi_pool(feature[:,:,int(box[2]):int(box[4]),int(box[3]):int(box[5])]))
                 idx.append(1)
             except RuntimeError:
-                print(img_path)
                 idx.append(0)
         idx = torch.tensor(idx, dtype=torch.uint8)
         targets = targets[idx]
