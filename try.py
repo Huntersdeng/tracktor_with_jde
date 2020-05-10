@@ -1,31 +1,44 @@
-from utils.FlowNetS import FlowNetS
+from utils.FlowNetS import FlowNet2S
 from torchsummary import summary
 import torch
 from model import Jde_RCNN
 from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
 import numpy as np
+import argparse
+from torchvision.transforms import transforms as T
+from utils.datasets import LoadImagesAndLabels_2
+from utils.utils import flow_to_image
+import cv2
 
-model = FlowNetS(input_channels=6)
-model.eval()
-summary(model, (6,448,768))
-# imgs = torch.randn((1,6,448,768))
-# box = torch.tensor([[1,2,3,4],[3,4,5,6]])
-# out = model(imgs, box)
-# print(out)
-# backbone = resnet_fpn_backbone('resnet50', True)
-# backbone.out_channels = 256
 
-# model = Jde_RCNN(backbone, num_ID=100)
+model = FlowNet2S(1)
+# summary(model, (6,448,768))
+# print(model.state_dict().keys())
+model.load_state_dict(torch.load('../weights/flownets_from_caffe.pth.tar.pth'))
 
-# imgs = [torch.randn((3,448,768))]
+root = '/home/hunter/Document/torch'
+# root = '/data/dgw'
+
+paths_trainset =  './data/flow/MOT16.txt'
+# transforms = T.Compose([T.ToTensor()])
+# trainset = LoadImagesAndLabels_2(root=root, path=paths_trainset, img_size=(768,448), augment=False, transforms=transforms)
+
+# dataloader_trainset = torch.utils.data.DataLoader(trainset, batch_size=1, shuffle=True)
 # model.eval()
-# model(imgs)
-# label_path1 = '../dataset/MOT16/train/MOT16-02/labels_with_ids/000001.txt'
-# label_path2 = '../dataset/MOT16/train/MOT16-02/labels_with_ids/000002.txt'
+summary(model, (3,2,448,768))
+# for i, (imgs, labels, img_path, _) in enumerate(dataloader_trainset):
+#     break
+# cv2.imwrite('test.jpg',imgs[0][0].numpy()[:, :, ::-1])
+# print(img_path)
+# imgs = torch.cat(imgs, dim=0)
+# imgs = imgs.permute(1, 0, 2, 3).unsqueeze(0)
+# img1 = cv2.resize(cv2.imread('frame_0008.png'), (1024,384))
+# img2 = cv2.resize(cv2.imread('frame_0009.png'), (1024,384))
+# imgs = [img1, img2]
 
-# label1 = torch.from_numpy(np.loadtxt(label_path1, delimiter=','))
-# label2 = torch.from_numpy(np.loadtxt(label_path2, delimiter=','))
-
-# out1, out2 = match(label1, label2)
-# print(out1)
-# print(out2)
+# imgs = np.array(imgs).transpose(3, 0, 1, 2)
+# imgs = torch.from_numpy(imgs.astype(np.float32)).unsqueeze(0)
+# out = model(imgs)
+# flow = out[0].detach().numpy().transpose(1,2,0)
+# flow = flow_to_image(flow)
+# cv2.imwrite('flow.jpg',flow)
