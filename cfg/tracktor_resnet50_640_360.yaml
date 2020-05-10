@@ -2,10 +2,11 @@ tracktor:
   backbone: resnet50
   num_ID: 510
   version: 'v1'
-  weights: ../weights/training/mot16/resnet50_img_size640_360/latest.pt
+  weights: ../weights/training/mot16/resnet50_img_size1120_630/latest.pt
   dataset: ./data/track/train+val
   width: 640
   height: 360
+  len_embed: 256
   interpolate: True
   write_images: False
   tracker:
@@ -42,6 +43,6 @@ tracktor:
     # How much timesteps dead tracks are kept and cosidered for reid
     inactive_patience: 10
     # How similar do image and old track need to be to be considered the same person
-    reid_sim_threshold: 11
+    reid_sim_threshold: 10
     # How much IoU do track and image need to be considered for matching
     reid_iou_threshold: 0.1

@@ -4,14 +4,14 @@ tracktor:
   version: 'v1'
   weights: ../weights/training/mot16/resnet50_img_size1120_630/latest.pt
   dataset: ./data/track/train+val
-  width: 800
-  height: 450
+  width: 480
+  height: 270
   len_embed: 256
   interpolate: True
   write_images: False
   tracker:
     # FRCNN score threshold for detections
-    detection_person_thresh: 0.95
+    detection_person_thresh: 0.975
     # FRCNN score threshold for keeping the track alive
     regression_person_thresh: 0.9
     # NMS threshold for detection
