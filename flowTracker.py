@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from utils.FlowNetS import FlowNetS
+from utils.FlowNetS import FlowNet2S
 from torchvision.ops import MultiScaleRoIAlign
 import torch.nn.functional as F
 import numpy as np
@@ -9,9 +9,10 @@ from torchvision.ops.boxes import clip_boxes_to_image
 class flowTracker(nn.Module):
     def __init__(self, img_size):
         super(flowTracker, self).__init__()
-        self.flownet = FlowNetS(input_channels=6)
+        self.flownet = FlowNet2S(1)
+        self.flownet.load_state_dict(torch.load('../weights/flownets_from_caffe.pth.tar.pth'))
         self.box_roi_pool = torch.nn.AdaptiveMaxPool2d((10,30), return_indices=False)
-        self.fc1 = nn.Linear(10*30*2, 1024)
+        self.fc1 = nn.Linear(2*10*30, 1024)
         self.fc2 = nn.Linear(1024, 4)
         self.img_size = img_size
     

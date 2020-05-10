@@ -78,7 +78,8 @@ def train(
         scheduler.step(epoch)
         loss_epoch_log = 0
         for i, (imgs, labels, img_path, _) in enumerate(tqdm(dataloader_trainset)):
-            imgs = torch.cat((imgs[0], imgs[1]), dim=1).cuda()
+            imgs = torch.cat(imgs, dim=0)
+            imgs = imgs.permute(1, 0, 2, 3).unsqueeze(0).cuda()
             boxes, target = labels[0][0].cuda(), labels[1][0].cuda()
             loss = model(imgs, boxes, target, img_path)
             if loss is None:
