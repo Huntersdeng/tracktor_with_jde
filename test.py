@@ -200,6 +200,7 @@ if __name__ == '__main__':
     parser.add_argument('--test-emb', action='store_true', help='test embedding')
     parser.add_argument('--all', action='store_true', help='test all the dataset')
     parser.add_argument('--test-trainset', action='store_true', help='test trainset')
+    parser.add_argument('--img-size', type=int, default=(800,450), nargs='+', help='pixels')
     parser.add_argument('--len-embed', type=int, default=128, help='length of embeddings')
     
     opt = parser.parse_args()
@@ -209,7 +210,7 @@ if __name__ == '__main__':
     with open(os.path.join(weights_path, 'model.yaml'), 'r') as f:
         cfg = yaml.load(f,Loader=yaml.FullLoader)
     weights = os.path.join(weights_path, 'latest.pt')
-    img_size = (cfg['width'], cfg['height'])
+    # img_size = (cfg['width'], cfg['height'])
     backbone_name = cfg['backbone_name']
     # Initialize model
     backbone = resnet_fpn_backbone(backbone_name, True)
