@@ -210,7 +210,7 @@ if __name__ == '__main__':
     with open(os.path.join(weights_path, 'model.yaml'), 'r') as f:
         cfg = yaml.load(f,Loader=yaml.FullLoader)
     weights = os.path.join(weights_path, 'latest.pt')
-    # img_size = (cfg['width'], cfg['height'])
+    img_size = opt.img_size
     backbone_name = cfg['backbone_name']
     # Initialize model
     backbone = resnet_fpn_backbone(backbone_name, True)

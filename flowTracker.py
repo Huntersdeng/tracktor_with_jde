@@ -10,8 +10,8 @@ class flowTracker(nn.Module):
     def __init__(self, img_size):
         super(flowTracker, self).__init__()
         self.flownet = FlowNetS(input_channels=6)
-        self.box_roi_pool = torch.nn.AdaptiveMaxPool2d((7,7), return_indices=False)
-        self.fc1 = nn.Linear(7**2*2, 1024)
+        self.box_roi_pool = torch.nn.AdaptiveMaxPool2d((10,30), return_indices=False)
+        self.fc1 = nn.Linear(10*30*2, 1024)
         self.fc2 = nn.Linear(1024, 4)
         self.img_size = img_size
     
