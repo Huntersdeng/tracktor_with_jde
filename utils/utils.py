@@ -1037,7 +1037,9 @@ def write_results(seq, all_tracks, output_dir, img_size):
         """
 
         #format_str = "{}, -1, {}, {}, {}, {}, {}, -1, -1, -1"
-
+        img = np.random.randn(1080,1920,3)
+        height, width = img_size
+        img, ratio, padw, padh = letterbox(img, height=height, width=width)
 
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
@@ -1050,10 +1052,10 @@ def write_results(seq, all_tracks, output_dir, img_size):
             writer = csv.writer(of, delimiter=',')
             for i, track in all_tracks.items():
                 for frame, bb in track.items():
-                    x1 = bb[0]
-                    y1 = bb[1]
-                    x2 = bb[2]
-                    y2 = bb[3]
+                    x1 = (bb[0]-padw)/ratio
+                    y1 = (bb[1]-padh)/ratio
+                    x2 = (bb[2]-padw)/ratio
+                    y2 = (bb[3]-padh)/ratio
                     writer.writerow([frame+1, i+1, x1+1, y1+1, x2-x1+1, y2-y1+1, -1, -1, -1, -1])
 
 def make_color_wheel():
