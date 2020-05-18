@@ -27,7 +27,7 @@ import torch
 import torch.nn.functional as F
 from torchvision.ops import nms
 
-from datasets import letterbox 
+from .datasets import letterbox 
 
 matplotlib.use('Agg')
 
@@ -692,7 +692,7 @@ def plot_sequence(tracks, db, output_dir, img_size):
         output_dir (String): Directory where to save the resulting images
     """
     img = np.random.randn(1080,1920,3)
-    height, width = img_size
+    width, height = img_size
     img0, ratio, padw, padh = letterbox(img, height=height, width=width)
 
     print("[*] Plotting whole sequence to {}".format(output_dir))
@@ -706,7 +706,7 @@ def plot_sequence(tracks, db, output_dir, img_size):
     styles = defaultdict(lambda: next(loop_cy_iter))
 
     for i, (img_path, img, img0, det, label) in enumerate(db):
-        im_path = imgs_path
+        im_path = img_path
         im_name = osp.basename(im_path)
         im_output = osp.join(output_dir, im_name)
         im = cv2.imread(im_path)
@@ -1038,7 +1038,7 @@ def write_results(seq, all_tracks, output_dir, img_size):
 
         #format_str = "{}, -1, {}, {}, {}, {}, {}, -1, -1, -1"
         img = np.random.randn(1080,1920,3)
-        height, width = img_size
+        width, height = img_size
         img, ratio, padw, padh = letterbox(img, height=height, width=width)
 
         if not os.path.exists(output_dir):
