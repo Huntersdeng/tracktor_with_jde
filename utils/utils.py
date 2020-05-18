@@ -691,10 +691,7 @@ def plot_sequence(tracks, db, output_dir, img_size):
         db (torch.utils.data.Dataset): The dataset with the images belonging to the tracks (e.g. MOT_Sequence object)
         output_dir (String): Directory where to save the resulting images
     """
-    img = np.random.randn(1080,1920,3)
     width, height = img_size
-    img0, ratio, padw, padh = letterbox(img, height=height, width=width)
-
     print("[*] Plotting whole sequence to {}".format(output_dir))
 
     if not osp.exists(output_dir):
@@ -706,6 +703,8 @@ def plot_sequence(tracks, db, output_dir, img_size):
     styles = defaultdict(lambda: next(loop_cy_iter))
 
     for i, (img_path, img, img0, det, label) in enumerate(db):
+        width, height = img_size
+        _, ratio, padw, padh = letterbox(img0, height=height, width=width)
         im_path = img_path
         im_name = osp.basename(im_path)
         im_output = osp.join(output_dir, im_name)
@@ -1037,7 +1036,10 @@ def write_results(seq, all_tracks, output_dir, img_size):
         """
 
         #format_str = "{}, -1, {}, {}, {}, {}, {}, -1, -1, -1"
-        img = np.random.randn(1080,1920,3)
+        if seq=='MOT16-05':
+            img = img = np.random.randn(480,640,3)
+        else:
+            img = np.random.randn(1080,1920,3)
         width, height = img_size
         img, ratio, padw, padh = letterbox(img, height=height, width=width)
 
