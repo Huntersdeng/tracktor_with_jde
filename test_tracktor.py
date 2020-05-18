@@ -102,10 +102,10 @@ for seq_path in os.listdir(tracktor['dataset']):
         mot_accums.append(get_mot_accum(results, seq))
 
     print(f"Writing predictions to: {output_dir}")
-    write_results(seq_path.rstrip('.txt'), results, output_dir)
+    write_results(seq_path.rstrip('.txt'), results, output_dir, img_size)
 
     if tracktor['write_images']:
-        plot_sequence(results, sequence, osp.join(output_dir, tracktor['dataset'], seq_path).rstrip('.txt'))
+        plot_sequence(results, sequence, osp.join(output_dir, tracktor['dataset'], seq_path).rstrip('.txt'), img_size)
 
 print(f"Tracking runtime for all sequences (without evaluation or image writing): "
             f"{time_total:.1f} s ({num_frames / time_total:.1f} Hz)")

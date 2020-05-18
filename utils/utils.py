@@ -27,6 +27,8 @@ import torch
 import torch.nn.functional as F
 from torchvision.ops import nms
 
+from datasets import letterbox 
+
 matplotlib.use('Agg')
 
 import glob
@@ -681,7 +683,7 @@ def bbox_overlaps(boxes, query_boxes):
     return out_fn(overlaps)
 
 
-def plot_sequence(tracks, db, output_dir):
+def plot_sequence(tracks, db, output_dir, img_size):
     """Plots a whole sequence
 
     Args:
@@ -689,6 +691,9 @@ def plot_sequence(tracks, db, output_dir):
         db (torch.utils.data.Dataset): The dataset with the images belonging to the tracks (e.g. MOT_Sequence object)
         output_dir (String): Directory where to save the resulting images
     """
+    img = np.random.randn(1080,1920,3)
+    height, width = img_size
+    img0, ratio, padw, padh = letterbox(img, height=height, width=width)
 
     print("[*] Plotting whole sequence to {}".format(output_dir))
 
@@ -700,7 +705,7 @@ def plot_sequence(tracks, db, output_dir):
     loop_cy_iter = cyl()
     styles = defaultdict(lambda: next(loop_cy_iter))
 
-    for i, (frame, labels, imgs_path, _) in enumerate(db):
+    for i, (img_path, img, img0, det, label) in enumerate(db):
         im_path = imgs_path
         im_name = osp.basename(im_path)
         im_output = osp.join(output_dir, im_name)
@@ -721,6 +726,10 @@ def plot_sequence(tracks, db, output_dir):
         for j, t in tracks.items():
             if i in t.keys():
                 t_i = t[i]
+                t_i[0] = (t_i[0]-padw)/ratio
+                t_i[1] = (t_i[1]-padh)/ratio
+                t_i[2] = (t_i[2]-padw)/ratio
+                t_i[3] = (t_i[3]-padh)/ratio
                 ax.add_patch(
                     plt.Rectangle(
                         (t_i[0], t_i[1]),
@@ -990,7 +999,19 @@ def evaluate_mot_accums(accums, names, generate_overall=False):
         namemap=mm.io.motchallenge_metric_names,)
     print(str_summary)
 
-def write_results(seq, all_tracks, output_dir):
+def coordinateConvert(result, img_size):
+    img = np.random.randn(1080,1920,3)
+    height, width = img_size
+    img, ratio, padw, padh = letterbox(img, height=height, width=width)
+    for i, track in all_tracks.items():
+        for frame, bb in track.items():
+            x1 = (bb[0]-padw)/ratio
+            y1 = (bb[1]-padh)/ratio
+            x2 = (bb[2]-padw)/ratio
+            y2 = (bb[3]-padh)/ratio
+
+
+def write_results(seq, all_tracks, output_dir, img_size):
         """Write the tracks in the format for MOT16/MOT17 sumbission
 
         all_tracks: dictionary with 1 dictionary for every track with {..., i:np.array([x1,y1,x2,y2]), ...} at key track_num
