@@ -3,12 +3,12 @@ tracktor:
   num_ID: 510
   version: 'v1'
   weights: ../weights/training/mot16/resnet50_img_size1120_630/latest.pt
-  dataset: ./data/track/train+val
+  dataset: ./data/track/val
   width: 960
   height: 540
   len_embed: 256
   interpolate: True
-  write_images: False
+  write_images: True
   tracker:
     # FRCNN score threshold for detections
     detection_person_thresh: 0.95

@@ -85,9 +85,10 @@ def train(
             if loss is None:
                 continue
             loss.backward()
-
+            optimizer.step() 
         ## print and log the loss
-
+            if i%50==0:
+                print(loss)
             loss_epoch_log += loss
         
         loss_epoch_log = loss_epoch_log/i
