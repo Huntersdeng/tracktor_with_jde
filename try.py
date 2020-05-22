@@ -4,6 +4,8 @@ import numpy as np
 path = '../dataset/2DMOT15/train/'
 seq_paths = os.listdir(path)
 for seq_path in seq_paths:
+    if not seq_path=='Venice-2':
+        continue
     with open(os.path.join('./data/track/val/',seq_path+'.txt'), 'w+') as file:
         current_path = os.path.join(path,seq_path+'/images')
         for img_path in os.listdir(current_path):
