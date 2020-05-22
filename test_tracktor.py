@@ -20,6 +20,8 @@ from model import Jde_RCNN
 from tracker import Tracker
 from utils.utils import interpolate, plot_sequence, get_mot_accum, evaluate_mot_accums, write_results
 from utils.datasets import LoadImagesAndDets
+import warnings
+warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--with-labels', action='store_true', help='for valset')
