@@ -3,7 +3,7 @@ tracktor:
   num_ID: 1443
   version: 'v1'
   weights: ../weights/training/all/resnet50_img_size960_600/latest.pt
-  dataset: ./data/track/train+val
+  dataset: ./data/track/val
   len_embed: 1024
   width: 960
   height: 540
@@ -11,9 +11,9 @@ tracktor:
   write_images: False
   tracker:
     # FRCNN score threshold for detections
-    detection_person_thresh: 0.95
+    detection_person_thresh: 0.8
     # FRCNN score threshold for keeping the track alive
-    regression_person_thresh: 0.9
+    regression_person_thresh: 0.6
     # NMS threshold for detection
     detection_nms_thresh: 0.5
     # NMS theshold while tracking

@@ -1044,7 +1044,7 @@ def write_results(seq, all_tracks, output_dir, img_size):
                      'KITTI-13':(1242,375),'ADL-Rundle-8':(1920,1080),'ADL-Rundle-6':(1920,1080),
                      'ETH-Pedcross2':(640,480),'ETH-Sunnyday':(640,480),'ETH-Bahnhof':(640,480),
                      'PETS09-S2L1':(768,576),'TUD-Campus':(640,480),'TUD-Stadtmitte':(640,480),
-                     'Venice-1':(640,480),'KITTI-19':(1238,374),'KITTI-16':(1224,370)
+                     'Venice-1':(640,480),'KITTI-19':(1238,374),'KITTI-16':(1224,370),
                      'ADL-Rundle-3':(1920,1080),'ADL-Rundle-1':(1920,1080),'AVG-TownCentre':(1920,1080),
                      'ETH-Crossing':(640,480),'ETH-Linthescher':(640,480),'ETH-Jelmoli':(640,480),
                      'PETS09-S2L2':(768,576),'TUD-Crossing':(640,480)}
