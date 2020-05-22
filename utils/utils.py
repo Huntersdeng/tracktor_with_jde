@@ -1037,7 +1037,7 @@ def write_results(seq, all_tracks, output_dir, img_size):
 
         #format_str = "{}, -1, {}, {}, {}, {}, {}, -1, -1, -1"
         if seq=='MOT16-05' or 'MOT16-06':
-            img = img = np.random.randn(480,640,3)
+            img = np.random.randn(480,640,3)
         else:
             img = np.random.randn(1080,1920,3)
         width, height = img_size

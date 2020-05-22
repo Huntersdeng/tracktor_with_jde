@@ -3,7 +3,7 @@ tracktor:
   num_ID: 1443
   version: 'v1'
   weights: ../weights/training/all/resnet50_img_size960_600/latest.pt
-  dataset: ./data/track/val
+  dataset: ./data/track/train+val
   len_embed: 1024
   width: 960
   height: 540
