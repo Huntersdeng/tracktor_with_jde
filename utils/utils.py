@@ -1036,10 +1036,19 @@ def write_results(seq, all_tracks, output_dir, img_size):
         """
 
         #format_str = "{}, -1, {}, {}, {}, {}, {}, -1, -1, -1"
-        if seq=='MOT16-05' or 'MOT16-06':
-            img = np.random.randn(480,640,3)
-        else:
-            img = np.random.randn(1080,1920,3)
+        imgs_size = {'MOT16-01':(1920,1080),'MOT16-02':(1920,1080),'MOT16-03':(1920,1080),
+                     'MOT16-04':(1920,1080),'MOT16-05':(640,480),'MOT16-06':(640,480),
+                     'MOT16-07':(1920,1080),'MOT16-08':(1920,1080),'MOT16-09':(1920,1080),
+                     'MOT16-10':(1920,1080),'MOT16-11':(1920,1080),'MOT16-12':(1920,1080),
+                     'MOT16-13':(1920,1080),'MOT16-14':(1920,1080),'Venice-2':(1920,1080),'KITTI-17':(1224,370),
+                     'KITTI-13':(1242,375),'ADL-Rundle-8':(1920,1080),'ADL-Rundle-6':(1920,1080),
+                     'ETH-Pedcross2':(640,480),'ETH-Sunnyday':(640,480),'ETH-Bahnhof':(640,480),
+                     'PETS09-S2L1':(768,576),'TUD-Campus':(640,480),'TUD-Stadtmitte':(640,480),
+                     'Venice-1':(640,480),'KITTI-19':(1238,374),'KITTI-16':(1224,370)
+                     'ADL-Rundle-3':(1920,1080),'ADL-Rundle-1':(1920,1080),'AVG-TownCentre':(1920,1080),
+                     'ETH-Crossing':(640,480),'ETH-Linthescher':(640,480),'ETH-Jelmoli':(640,480),
+                     'PETS09-S2L2':(768,576),'TUD-Crossing':(640,480)}
+        img = np.random.randn(imgs_size[seq][1],imgs_size[seq][0],3)
         width, height = img_size
         img, ratio, padw, padh = letterbox(img, height=height, width=width)
 
