@@ -1,9 +1,9 @@
 tracktor:
   backbone: resnet50
-  num_ID: 510
+  num_ID: 1443
   version: 'v1'
-  weights: ../weights/training/mot16/resnet50_img_size1120_630/latest.pt
-  dataset: ./data/track/try
+  weights: ../weights/training/all/resnet50_img_size960_600/latest.pt
+  dataset: ./data/track/val
   width: 960
   height: 540
   len_embed: 256
