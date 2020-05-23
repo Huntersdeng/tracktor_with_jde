@@ -1,15 +1,15 @@
 import os
 import numpy as np
 
-path = '../dataset/2DMOT15/train/'
-seq_paths = os.listdir(path)
-for seq_path in seq_paths:
-    if not seq_path=='Venice-2':
-        continue
-    with open(os.path.join('./data/track/val/',seq_path+'.txt'), 'w+') as file:
-        current_path = os.path.join(path,seq_path+'/images')
-        for img_path in os.listdir(current_path):
-            file.writelines(os.path.join(current_path.lstrip('../'),img_path)+'\n')
+# path = '../dataset/2DMOT15/train/'
+# seq_paths = os.listdir(path)
+# for seq_path in seq_paths:
+#     if not seq_path=='Venice-2':
+#         continue
+#     with open(os.path.join('./data/track/val/',seq_path+'.txt'), 'w+') as file:
+#         current_path = os.path.join(path,seq_path+'/images')
+#         for img_path in os.listdir(current_path):
+#             file.writelines(os.path.join(current_path.lstrip('../'),img_path)+'\n')
 
 # rootdir = '../dataset/2DMOT15/train/'
 # for path in os.listdir(rootdir):
@@ -32,3 +32,25 @@ for seq_path in seq_paths:
 #         src[:,2] = src[:,2] + src[:,4]/2
 #         src[:,3] = src[:,3] + src[:,5]/2
 #         np.savetxt(current_path+str(i+1).rjust(6,'0')+'.txt', src, fmt='%d', delimiter=',')
+
+path = './data/detect/cp_train.txt'
+root = './'
+with open(path, 'r') as file:
+    img_files = file.readlines()
+    img_files = [x.replace('\n', '') for x in img_files]
+    img_files = list(filter(lambda x: len(x) > 0, img_files))
+label_files = [x.replace('images', 'labels_with_ids').replace('.png', '.txt').replace('.jpg', '.txt')
+                    for x in img_files]
+num_frames = len(img_files)
+from random import shuffle
+shuffle(img_files)
+
+img_train = img_files[:int(0.9*num_frames)]
+img_val = img_files[int(0.9*num_frames):]
+with open('./data/detect/train/cp_train.txt','w+') as file:
+    for img_path in img_train:
+         file.writelines(img_path+'\n')
+
+with open('./data/detect/val/cp_val.txt','w+') as file:
+    for img_path in img_val:
+         file.writelines(img_path+'\n')
