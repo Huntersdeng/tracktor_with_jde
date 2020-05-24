@@ -230,7 +230,7 @@ if __name__ == '__main__':
     root = '/data/dgw'
     # root = '/home/hunter/Document/torch'
     if opt.all:
-        if test_emb:
+        if opt.test_emb:
             paths     =    {'02':'./data/detect/val/MOT16-02.txt',
                             '04':'./data/detect/val/MOT16-04.txt',
                             '05':'./data/detect/val/MOT16-05.txt',
