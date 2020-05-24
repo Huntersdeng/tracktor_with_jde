@@ -240,7 +240,7 @@ if __name__ == '__main__':
                             '13':'./data/detect/val/MOT16-13.txt',
                             'PRW':'./data/detect/val/PRW_val.txt'}
         else:
-            paths_valset = {'M16':'./data/detect/val/MOT16_val.txt',
+            paths = {'M16':'./data/detect/val/MOT16_val.txt',
                             'CP':'./data/detect/val/cp_val.txt',
                             'PRW':'./data/detect/val/PRW_val.txt',
                             'CT':'./data/detect/val/CT_val.txt',

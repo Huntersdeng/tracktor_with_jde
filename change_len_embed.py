@@ -7,7 +7,7 @@ import os
 import yaml
 parser = argparse.ArgumentParser()
 parser.add_argument('--weights-path', type=str)
-parser.add_argument('--len-embed', type=int, default=128, help='length of embeddings')
+parser.add_argument('--len-embed', type=int, default=1024, help='length of embeddings')
     
 opt = parser.parse_args()
 print(opt, end='\n\n')
