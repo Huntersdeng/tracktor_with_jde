@@ -230,46 +230,29 @@ if __name__ == '__main__':
     root = '/data/dgw'
     # root = '/home/hunter/Document/torch'
     if opt.all:
-        if opt.test_trainset:
-            paths =    {'02':'./data/track/train/MOT16-02.txt',
-                        '04':'./data/track/train/MOT16-04.txt',
-                        '05':'./data/track/train/MOT16-05.txt',
-                        '09':'./data/track/train/MOT16-09.txt',
-                        '10':'./data/track/train/MOT16-10.txt',
-                        '11':'./data/track/train/MOT16-11.txt',
-                        '13':'./data/track/train/MOT16-13.txt',
-                        'CT':'./data/detect/CT_train.txt', 
-                        'ETH':'./data/detect/ETH.txt',
-                        'PRW':'./data/detect/PRW_train.txt', 
-                        'CP':'./data/detect/cp_train.txt'}
+        if test_emb:
+            paths     =    {'02':'./data/detect/val/MOT16-02.txt',
+                            '04':'./data/detect/val/MOT16-04.txt',
+                            '05':'./data/detect/val/MOT16-05.txt',
+                            '09':'./data/detect/val/MOT16-09.txt',
+                            '10':'./data/detect/val/MOT16-10.txt',
+                            '11':'./data/detect/val/MOT16-11.txt',
+                            '13':'./data/detect/val/MOT16-13.txt',
+                            'PRW':'./data/detect/val/PRW_val.txt'}
         else:
-            paths =    {'02':'./data/track/val/MOT16-02.txt',
-                        '04':'./data/track/val/MOT16-04.txt',
-                        '05':'./data/track/val/MOT16-05.txt',
-                        '09':'./data/track/val/MOT16-09.txt',
-                        '10':'./data/track/val/MOT16-10.txt',
-                        '11':'./data/track/val/MOT16-11.txt',
-                        '13':'./data/track/val/MOT16-13.txt',
-                        'CP':'./data/detect/cp_val.txt',
-                        'PRW':'./data/detect/PRW_val.txt',
-                        'CT':'./data/detect/CT_val.txt'}
+            paths_valset = {'M16':'./data/detect/val/MOT16_val.txt',
+                            'CP':'./data/detect/val/cp_val.txt',
+                            'PRW':'./data/detect/val/PRW_val.txt',
+                            'CT':'./data/detect/val/CT_val.txt',
+                            'CS':'./data/detect/val/CUHK_val.txt'}
     else:
-        if opt.test_trainset:
-            paths =  {'02':'./data/track/train/MOT16-02.txt',
-                        '04':'./data/track/train/MOT16-04.txt',
-                        '05':'./data/track/train/MOT16-05.txt',
-                        '09':'./data/track/train/MOT16-09.txt',
-                        '10':'./data/track/train/MOT16-10.txt',
-                        '11':'./data/track/train/MOT16-11.txt',
-                        '13':'./data/track/train/MOT16-13.txt'}
-        else:
-            paths =    {'02':'./data/track/val/MOT16-02.txt',
-                        '04':'./data/track/val/MOT16-04.txt',
-                        '05':'./data/track/val/MOT16-05.txt',
-                        '09':'./data/track/val/MOT16-09.txt',
-                        '10':'./data/track/val/MOT16-10.txt',
-                        '11':'./data/track/val/MOT16-11.txt',
-                        '13':'./data/track/val/MOT16-13.txt'}
+        paths     =    {'02':'./data/detect/val/MOT16-02.txt',
+                        '04':'./data/detect/val/MOT16-04.txt',
+                        '05':'./data/detect/val/MOT16-05.txt',
+                        '09':'./data/detect/val/MOT16-09.txt',
+                        '10':'./data/detect/val/MOT16-10.txt',
+                        '11':'./data/detect/val/MOT16-11.txt',
+                        '13':'./data/detect/val/MOT16-13.txt'}
     transforms = T.Compose([T.ToTensor()])
     dataset = JointDataset(root=root, paths=paths, img_size=img_size, augment=False, transforms=transforms)
 
