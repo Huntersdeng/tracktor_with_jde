@@ -75,7 +75,7 @@ def train(
                             'PRW':'./data/detect/train/PRW_train.txt', 
                             'CP':'./data/detect/train/cp_train.txt',
                             'CS':'./data/detect/train/CUHK_train.txt'}
-            paths_valset = {'M16':'./data/detect/train/MOT16_val.txt',
+            paths_valset = {'M16':'./data/detect/val/MOT16_val.txt',
                             'CP':'./data/detect/val/cp_val.txt',
                             'PRW':'./data/detect/val/PRW_val.txt',
                             'CT':'./data/detect/val/CT_val.txt',
