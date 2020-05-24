@@ -34,12 +34,8 @@ def train(
     weights_path = osp.join(save_path, model_name)
     loss_log_path = osp.join(weights_path, 'loss.json')
     mkdir_if_missing(weights_path)
-    cfg = {}
-    cfg['width'] = img_size[0]
-    cfg['height'] = img_size[1]
-    cfg['backbone_name'] = opt.backbone_name
-    cfg['lr'] = opt.lr
-    
+    start_epoch_det = 0
+    start_epoch_reid = 0
     if resume:
         latest_resume = osp.join(weights_path, 'latest.pt')
 
@@ -104,16 +100,41 @@ def train(
     dataloader_valset = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=True,
                                                 num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate_fn)                                       
     
-    cfg['num_ID'] = trainset.nID
+    
     backbone = resnet_fpn_backbone(opt.backbone_name, True)
     backbone.out_channels = 256
 
-    model = Jde_RCNN(backbone, num_ID=trainset.nID, min_size=img_size[1], max_size=img_size[0], version=opt.model_version, len_embeddings=opt.len_embed)
-    model.cuda().train()
+    
+
+    if resume:
+        with open(osp.join(weights_path,'model.yaml'), 'w+') as f:
+            cfg = yaml.load(f,Loader=yaml.FullLoader)
+        model = Jde_RCNN(backbone, num_ID=cfg['num_ID'], min_size=img_size[1], max_size=img_size[0], version=opt.model_version, len_embeddings=opt.len_embed)
+        model.cuda().train()
+        checkpoint = torch.load(latest_resume, map_location='cpu')
+
+        # Load weights to resume from
+        print(model.load_state_dict(checkpoint['model'],strict=True))
+        
+        start_epoch_det = checkpoint['epoch_det'] + 1
+        start_epoch_reid = checkpoint['epoch_reid'] + 1
+
+        del checkpoint  # current, saved
+        
+    else:
+        cfg = {}
+        cfg['width'] = img_size[0]
+        cfg['height'] = img_size[1]
+        cfg['backbone_name'] = opt.backbone_name
+        cfg['lr'] = opt.lr
+        cfg['num_ID'] = trainset.nID
+        with open(osp.join(weights_path,'model.yaml'), 'w+') as f:
+            yaml.dump(cfg, f)
+
+        model = Jde_RCNN(backbone, num_ID=trainset.nID, min_size=img_size[1], max_size=img_size[0], version=opt.model_version, len_embeddings=opt.len_embed)
+        model.cuda().train()
 
     # model = torch.nn.DataParallel(model)
-    start_epoch_det = 0
-    start_epoch_reid = 0
     layer = ['roi_heads.embed_head.fc8.weight',
              'roi_heads.embed_head.fc8.bias',
              'roi_heads.embed_head.fc9.weight',
@@ -140,21 +161,6 @@ def train(
     for name, p in model.named_parameters():
         if p.requires_grad:
             print(name)
-
-    if resume:
-        checkpoint = torch.load(latest_resume, map_location='cpu')
-
-        # Load weights to resume from
-        print(model.load_state_dict(checkpoint['model'],strict=False))
-        
-        start_epoch_det = checkpoint['epoch_det'] + 1
-        start_epoch_reid = checkpoint['epoch_reid'] + 1
-
-        del checkpoint  # current, saved
-        
-    else:
-        with open(osp.join(weights_path,'model.yaml'), 'w+') as f:
-            yaml.dump(cfg, f)
         
     for epoch in range(epochs):
         model.cuda().eval()
