@@ -94,12 +94,7 @@ for seq_path in os.listdir(tracktor['dataset']):
 
     print(f"Tracks found: {len(results)}")
     print(f"Runtime for {seq_path}: {time.time() - start :.1f} s.")
-    print('Runtime for load:', tracker.time['load'])
-    print('Runtime for det:', tracker.time['det'])
-    print('Runtime for motion:', tracker.time['motion'])
-    print('Runtime for regress:', tracker.time['regress'])
-    print('Runtime for reid:', tracker.time['reid'])
-    print('Runtime for track:', tracker.time['track'])
+    print('Runtime for different steps: ', tracker.time)
     print('nums of boxes: ', tracker.boxes)
 
     if tracktor['interpolate']:
