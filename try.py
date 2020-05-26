@@ -1,56 +1,44 @@
 import os
 import numpy as np
+import torch
+import cv2
+from torchvision.transforms import transforms as T
+import time
 
-# path = '../dataset/2DMOT15/train/'
-# seq_paths = os.listdir(path)
-# for seq_path in seq_paths:
-#     if not seq_path=='Venice-2':
-#         continue
-#     with open(os.path.join('./data/track/val/',seq_path+'.txt'), 'w+') as file:
-#         current_path = os.path.join(path,seq_path+'/images')
-#         for img_path in os.listdir(current_path):
-#             file.writelines(os.path.join(current_path.lstrip('../'),img_path)+'\n')
+from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
+from model import Jde_RCNN
+from utils.datasets import letterbox
 
-# rootdir = '../dataset/2DMOT15/train/'
-# for path in os.listdir(rootdir):
-#     path = rootdir+path
-#     gt = np.loadtxt(path+'/gt/gt.txt', dtype=float, delimiter=',', usecols=(0,1,2,3,4,5,6,7))
-#     gt = gt[np.argsort(gt[:,0])]
-#     gt = gt[gt[:,6]==1]
-#     # print(gt.shape)
-#     label = gt[:,1]
-#     label_set = np.unique(label)
-#     for i,id in enumerate(np.unique(label)):
-#         label[label==id] = i
-#     gt[:,1] = label
-#     num_frames = int(np.max(gt[:,0]))
-#     current_path = path+'/labels_with_ids/'
-#     if not os.path.exists(current_path):
-#         os.makedirs(current_path)
-#     for i in range(num_frames):
-#         src = gt[gt[:,0]==i+1][:,0:6]
-#         src[:,2] = src[:,2] + src[:,4]/2
-#         src[:,3] = src[:,3] + src[:,5]/2
-#         np.savetxt(current_path+str(i+1).rjust(6,'0')+'.txt', src, fmt='%d', delimiter=',')
+backbone = resnet_fpn_backbone('resnet50', True)
+backbone.out_channels = 256
+transforms = T.Compose([T.ToTensor()])
+model = Jde_RCNN(backbone, num_ID=1443, min_size=630, max_size=1120, len_embeddings=1024)
+model.load_state_dict(torch.load('../weights/training/all/resnet50_img_size1120_630/latest.pt', map_location='cpu')['model'])
 
-path = './data/detect/cp_train.txt'
-root = './'
-with open(path, 'r') as file:
-    img_files = file.readlines()
-    img_files = [x.replace('\n', '') for x in img_files]
-    img_files = list(filter(lambda x: len(x) > 0, img_files))
-label_files = [x.replace('images', 'labels_with_ids').replace('.png', '.txt').replace('.jpg', '.txt')
-                    for x in img_files]
-num_frames = len(img_files)
-from random import shuffle
-shuffle(img_files)
+start = time.time()
+img = cv2.imread('/data/dgw/dataset/MOT16/train/MOT16-02/images/000001.jpg')
+img, ratio, padw, padh = letterbox(img, height=630, width=1120)
+img = np.ascontiguousarray(img[ :, :, ::-1])
+img = transforms(img).unsqueeze(0)
+print('Runtime: ', time.time()-start)
+model.eval()
+model.load_image(img)
+dets = torch.FloatTensor([[ 600.4134,  259.4911,  630.3846,  329.3570],
+                        [ 354.4627,  249.7224,  363.8081,  270.0044],
+                        [ 307.5739,  262.1659,  321.3314,  298.9787],
+                        [ 357.8457,  253.7306,  369.3017,  281.4169],
+                        [ 391.7324,  265.6148,  406.7554,  307.5581],
+                        [ 325.3136,  257.8607,  336.9111,  285.9368]])
+pos =  torch.FloatTensor([[ 258.9648,  260.0791,  323.6870,  419.7425],
+        [ 777.3400,  244.6645,  876.6724,  455.2278],
+        [ 339.2203,  259.4285,  397.8312,  412.5075],
+        [ 593.5024,  254.5205,  617.7199,  317.1711],
+        [ 832.5743,  245.2603,  932.6730,  453.1967],
+        [ 544.2612,  253.1349,  569.4096,  320.2453]])
+start = time.time()
+print(model.predict_boxes(dets))
+print('Runtime: ', time.time()-start)
 
-img_train = img_files[:int(0.9*num_frames)]
-img_val = img_files[int(0.9*num_frames):]
-with open('./data/detect/train/cp_train.txt','w+') as file:
-    for img_path in img_train:
-         file.writelines(img_path+'\n')
-
-with open('./data/detect/val/cp_val.txt','w+') as file:
-    for img_path in img_val:
-         file.writelines(img_path+'\n')
+start = time.time()
+print(model.predict_boxes(pos))
+print('Runtime: ', time.time()-start)
