@@ -66,3 +66,22 @@ print('Runtime: ', time.time()-start)
 start = time.time()
 print(model.predict_boxes(pos))
 print('Runtime: ', time.time()-start)
+
+start = time.time()
+img = cv2.imread('/data/dgw/dataset/MOT16/train/MOT16-02/images/000003.jpg')
+img, _, _, _ =letterbox(img, height=630, width=1120)
+img = np.ascontiguousarray(img[ :, :, ::-1])
+img = transforms(img).unsqueeze(0)
+print('Runtime for pre img3: ', time.time()-start)
+
+start = time.time()
+model.load_image(img)
+print('Runtime for laod img3: ', time.time()-start)
+
+start = time.time()
+print(model.predict_boxes(dets))
+print('Runtime: ', time.time()-start)
+
+start = time.time()
+print(model.predict_boxes(pos))
+print('Runtime: ', time.time()-start)
