@@ -7,7 +7,6 @@ import os
 import yaml
 parser = argparse.ArgumentParser()
 parser.add_argument('--weights-path', type=str)
-parser.add_argument('--len-embed', type=int, default=1024, help='length of embeddings')
     
 opt = parser.parse_args()
 print(opt, end='\n\n')
@@ -22,7 +21,7 @@ backbone = resnet_fpn_backbone(backbone_name, True)
 backbone.out_channels = 256
 # model = FRCNN_FPN(num_classes=2)
 
-model = Jde_RCNN(backbone, num_ID=cfg['num_ID'], min_size=img_size[1], max_size=img_size[0],len_embeddings=opt.len_embed)
+model = Jde_RCNN(backbone, num_ID=cfg['num_ID'], min_size=img_size[1], max_size=img_size[0],len_embeddings=cfg['len_embed'])
 checkpoint = torch.load(weights, map_location='cpu')
 layer = ['roi_heads.embed_head.fc8.weight',
             'roi_heads.embed_head.fc8.bias',

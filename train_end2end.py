@@ -107,7 +107,7 @@ def train(
     
 
     if resume:
-        with open(osp.join(weights_path,'model.yaml'), 'w+') as f:
+        with open(osp.join(weights_path,'model.yaml'), 'r') as f:
             cfg = yaml.load(f,Loader=yaml.FullLoader)
         model = Jde_RCNN(backbone, num_ID=cfg['num_ID'], min_size=img_size[1], max_size=img_size[0], version=opt.model_version, len_embeddings=opt.len_embed)
         model.cuda().train()
@@ -131,7 +131,7 @@ def train(
         with open(osp.join(weights_path,'model.yaml'), 'w+') as f:
             yaml.dump(cfg, f)
 
-        model = Jde_RCNN(backbone, num_ID=trainset.nID, min_size=img_size[1], max_size=img_size[0], version=opt.model_version, len_embeddings=opt.len_embed)
+        model = Jde_RCNN(backbone, num_ID=trainset.nID, min_size=img_size[1], max_size=img_size[0], version=opt.model_version, len_embeddings=cfg['len_embed'])
         model.cuda().train()
 
     # model = torch.nn.DataParallel(model)
@@ -149,7 +149,7 @@ def train(
             if name in layer:
                 p.requires_grad = False
         optimizer = torch.optim.SGD(filter(lambda x: x.requires_grad, model.parameters()), lr=opt.lr, momentum=.9, weight_decay=5e-4)
-        after_scheduler = StepLR(optimizer, 10, 0.1)
+        after_scheduler = StepLR(optimizer, 1, 0.9)
         scheduler = GradualWarmupScheduler(optimizer, multiplier=10, total_epoch=10, after_scheduler=after_scheduler)
     else:
         
@@ -169,7 +169,7 @@ def train(
                 test_emb(model, dataloader_valset, print_interval=50)[-1]
                 scheduler.step(epoch+start_epoch_reid)
             else:
-                test(model, dataloader_valset, conf_thres=0.5, iou_thres=0.2, print_interval=50)
+                test(model, dataloader_valset, conf_thres=0.6, iou_thres=0.5, print_interval=500)
                 
                 scheduler.step(epoch+start_epoch_det)
             print(scheduler.get_lr())
