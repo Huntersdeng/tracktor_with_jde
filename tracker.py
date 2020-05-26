@@ -48,6 +48,8 @@ class Tracker:
 	def reset(self, hard=True):
 		self.tracks = []
 		self.inactive_tracks = []
+		self.time = {'load':0.0,'det':0.0,'regress':0.0,'motion':0.0,'reid':0.0,'track':0.0}
+		self.boxes = {'det':0, 'regress':0}
 
 		if hard:
 			self.track_num = 0
