@@ -100,6 +100,7 @@ for seq_path in os.listdir(tracktor['dataset']):
     print('Runtime for regress:', tracker.time['regress'])
     print('Runtime for reid:', tracker.time['reid'])
     print('Runtime for track:', tracker.time['track'])
+    print('nums of boxes: ', tracker.boxes)
 
     if tracktor['interpolate']:
         results = interpolate(results)
