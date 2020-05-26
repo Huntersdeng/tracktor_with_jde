@@ -320,10 +320,12 @@ class Tracker:
 				keep = nms(self.get_pos(), person_scores, self.regression_nms_thresh)
 				self.tracks_to_inactive([self.tracks[i] for i in list(range(len(self.tracks))) if i not in keep])
 				pos = list(self.get_pos())
+				start = time.time()
 				if keep.nelement() > 0:
 					if self.do_reid:
 						new_features = self.get_appearances(blob)
 						self.add_features(new_features)
+				self.time['reid'] = time.time() - start
 
 		#####################
 		# Create new tracks #
