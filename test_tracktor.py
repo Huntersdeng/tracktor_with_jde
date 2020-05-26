@@ -19,7 +19,7 @@ from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
 from model import Jde_RCNN
 from tracker import Tracker
 from utils.utils import interpolate, plot_sequence, get_mot_accum, evaluate_mot_accums, write_results
-from utils.datasets import LoadImagesAndDets
+from utils.datasets import LoadImagesAndDets, letterbox
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -56,6 +56,13 @@ checkpoint = torch.load(tracktor['weights'], map_location='cpu')['model']
 print(obj_detect.load_state_dict(checkpoint, strict=False))
 
 obj_detect.cuda().eval()
+img = cv2.imread('/data/dgw/dataset/MOT16/train/MOT16-02/images/000481.jpg')
+img, _, _, _ =letterbox(img, height=630, width=1120)
+img = np.ascontiguousarray(img[ :, :, ::-1])
+img = transforms(img).unsqueeze(0)
+model.load_image(img)
+dets = torch.FloatTensor([[ 600.4134,  259.4911,  630.3846,  329.3570]])
+model.predict_boxes(dets)
 
 tracker = Tracker(obj_detect, tracktor['tracker'])
 
