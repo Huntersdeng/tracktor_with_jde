@@ -74,13 +74,13 @@ mot_accums = []
 
 for seq_path in os.listdir(tracktor['dataset']):
     tracker.reset()
-
-    start = time.time()
+    
 
     print(f"Tracking: {seq_path}")
     sequence = LoadImagesAndDets(root, osp.join(tracktor['dataset'], seq_path), img_size, opt.with_labels, with_dets)
     data_loader = DataLoader(sequence, batch_size=1, shuffle=False)
 
+    start = time.time()
     seq = []
     for i, (_, frame, _, dets, labels) in enumerate(tqdm(data_loader)):
         blob = {'img':frame.cuda(), 'dets':dets[:,:,2:6]} if with_dets else {'img':frame.cuda(), 'dets':None}

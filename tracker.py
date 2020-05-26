@@ -191,7 +191,7 @@ class Tracker:
 		"""Uses the siamese CNN to get the features for all active tracks."""
 		start = time.time()
 		new_features = self.obj_detect.get_embedding(self.get_pos())
-		self.time['reid'] = time.time() - start
+		self.time['reid'] += time.time() - start
 		return new_features
 
 	def add_features(self, new_features):
@@ -257,9 +257,11 @@ class Tracker:
 		"""This function should be called every timestep to perform tracking with a blob
 		containing the image information.
 		"""
+		start = time.time()
 		for t in self.tracks:
 			# add current position to last_pos list
 			t.last_pos.append(t.pos.clone())
+		self.time['track'] += time.time() - start
 
 		###########################
 		# Look for new detections #
@@ -319,9 +321,11 @@ class Tracker:
 				# create nms input
 
 				# nms here if tracks overlap
+				start = time.time()
 				keep = nms(self.get_pos(), person_scores, self.regression_nms_thresh)
 				self.tracks_to_inactive([self.tracks[i] for i in list(range(len(self.tracks))) if i not in keep])
 				pos = list(self.get_pos())
+				self.time['track'] += time.time() - start
         
 				if keep.nelement() > 0:
 					if self.do_reid:
