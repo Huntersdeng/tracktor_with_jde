@@ -84,16 +84,18 @@ for seq_path in os.listdir(tracktor['dataset']):
     start = time.time()
     seq = []
     for i, (_, frame, _, dets, labels) in enumerate(tqdm(data_loader)):
+        
         blob = {'img':frame.cuda(), 'dets':dets[:,:,2:6]} if with_dets else {'img':frame.cuda(), 'dets':None}
         # blob = {'img':frame, 'dets':dets[0,:,2:6]}
         with torch.no_grad():
             tracker.step(blob)
         num_frames += 1
-        if opt.with_labels:
-            gt = {}
-            for label in labels[0]:
-                gt[label[1]] = label[2:6]
-            seq.append({'gt':gt})
+        
+        #if opt.with_labels:
+        #    gt = {}
+        #    for label in labels[0]:
+        #        gt[label[1]] = label[2:6]
+        #    seq.append({'gt':gt})
     results = tracker.get_results()
     time_total += time.time() - start
 

@@ -109,7 +109,7 @@ def train(
     if resume:
         with open(osp.join(weights_path,'model.yaml'), 'r') as f:
             cfg = yaml.load(f,Loader=yaml.FullLoader)
-        model = Jde_RCNN(backbone, num_ID=cfg['num_ID'], min_size=img_size[1], max_size=img_size[0], version=opt.model_version, len_embeddings=opt.len_embed)
+        model = Jde_RCNN(backbone, num_ID=cfg['num_ID'], min_size=img_size[1], max_size=img_size[0], version=opt.model_version, len_embeddings=cfg['len_embed'])
         model.cuda().train()
         checkpoint = torch.load(latest_resume, map_location='cpu')
 
@@ -128,6 +128,7 @@ def train(
         cfg['backbone_name'] = opt.backbone_name
         cfg['lr'] = opt.lr
         cfg['num_ID'] = trainset.nID
+        cfg['len_embed'] = opt.len_embed
         with open(osp.join(weights_path,'model.yaml'), 'w+') as f:
             yaml.dump(cfg, f)
 
