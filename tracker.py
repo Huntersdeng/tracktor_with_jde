@@ -42,13 +42,13 @@ class Tracker:
 		self.track_num = 0
 		self.im_index = 0
 		self.results = {}
-		self.time = {'load':0.0,'det':0.0,'regress':0.0,'motion':0.0,'reid':0.0,'track':0.0}
+		self.time = {'load':0.0,'det':0.0,'det0':0.0,'regress':0.0,'motion':0.0,'reid':0.0,'track':0.0}
 		self.boxes = {'det':0, 'regress':0}
 
 	def reset(self, hard=True):
 		self.tracks = []
 		self.inactive_tracks = []
-		self.time = {'load':0.0,'det':0.0,'regress':0.0,'motion':0.0,'reid':0.0,'track':0.0}
+		self.time = {'load':0.0,'det':0.0,'det0':0.0,'regress':0.0,'motion':0.0,'reid':0.0,'track':0.0}
 		self.boxes = {'det':0, 'regress':0}
 
 		if hard:
@@ -284,6 +284,8 @@ class Tracker:
 		else:
 			boxes, scores = self.obj_detect.detect()
 
+		self.time['det'] += time.time() - start
+		start = time.time()
 		if boxes.nelement() > 0:
 			boxes = clip_boxes_to_image(boxes, blob['img'].shape[-2:])
 
@@ -300,7 +302,7 @@ class Tracker:
 			det_pos = torch.zeros(0).cuda()
 			det_scores = torch.zeros(0).cuda()
 		
-		self.time['det'] += time.time() - start
+		self.time['det0'] += time.time() - start
 
 		##################
 		# Predict tracks #
