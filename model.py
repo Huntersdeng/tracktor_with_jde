@@ -153,6 +153,7 @@ class Jde_RCNN(GeneralizedRCNN):
 
     def predict_boxes(self, boxes):
         device = list(self.parameters())[0].device
+        print(device)
         boxes = boxes.to(device)
 
         try:
