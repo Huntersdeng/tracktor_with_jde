@@ -14,6 +14,7 @@ backbone.out_channels = 256
 transforms = T.Compose([T.ToTensor()])
 model = Jde_RCNN(backbone, num_ID=1443, min_size=630, max_size=1120, len_embeddings=1024)
 model.load_state_dict(torch.load('../weights/training/all/resnet50_img_size1120_630/latest.pt', map_location='cpu')['model'])
+model.cuda().eval()
 
 start = time.time()
 img = cv2.imread('/data/dgw/dataset/MOT16/train/MOT16-02/images/000001.jpg')
@@ -21,7 +22,7 @@ img, _, _, _ =letterbox(img, height=630, width=1120)
 img = np.ascontiguousarray(img[ :, :, ::-1])
 img = transforms(img).unsqueeze(0)
 print('Runtime: ', time.time()-start)
-model.cuda().eval()
+
 model.load_image(img)
 dets = torch.FloatTensor([[ 600.4134,  259.4911,  630.3846,  329.3570],
                         [ 354.4627,  249.7224,  363.8081,  270.0044],
@@ -35,6 +36,22 @@ pos =  torch.FloatTensor([[ 258.9648,  260.0791,  323.6870,  419.7425],
         [ 593.5024,  254.5205,  617.7199,  317.1711],
         [ 832.5743,  245.2603,  932.6730,  453.1967],
         [ 544.2612,  253.1349,  569.4096,  320.2453]])
+
+start = time.time()
+print(model.predict_boxes(dets))
+print('Runtime: ', time.time()-start)
+
+start = time.time()
+print(model.predict_boxes(pos))
+print('Runtime: ', time.time()-start)
+
+start = time.time()
+img = cv2.imread('/data/dgw/dataset/MOT16/train/MOT16-02/images/000002.jpg')
+img, _, _, _ =letterbox(img, height=630, width=1120)
+img = np.ascontiguousarray(img[ :, :, ::-1])
+img = transforms(img).unsqueeze(0)
+print('Runtime: ', time.time()-start)
+
 start = time.time()
 print(model.predict_boxes(dets))
 print('Runtime: ', time.time()-start)
