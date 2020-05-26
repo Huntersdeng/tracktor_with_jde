@@ -42,7 +42,7 @@ class Tracker:
 		self.track_num = 0
 		self.im_index = 0
 		self.results = {}
-		self.time = {'load':0.0,'det':0.0,'regress':0.0,'motion':0.0,'reid':0.0}
+		self.time = {'load':0.0,'det':0.0,'regress':0.0,'motion':0.0,'reid':0.0,'track':0.0}
 
 	def reset(self, hard=True):
 		self.tracks = []
@@ -334,6 +334,7 @@ class Tracker:
 		# !!! than 1 (maximum score for detections) and then filtering the detections with NMS.
 		# !!! In the paper this is done by calculating the overlap with existing tracks, but the
 		# !!! result stays the same.
+		start = time.time()
 		if det_pos.nelement() > 0:
 			keep = nms(det_pos, det_scores, self.detection_nms_thresh)
 			det_pos = det_pos[keep]
@@ -382,6 +383,7 @@ class Tracker:
 
 		self.im_index += 1
 		self.last_image = blob['img'][0]
+		self.time['track'] += time.time() - start
 
 	def get_results(self):
 		return self.results
