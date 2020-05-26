@@ -64,6 +64,7 @@ transforms = T.Compose([T.ToTensor()])
 
 time_total = 0
 time_load = 0
+time_det = 0
 time_reid = 0
 time_motion = 0
 time_regress = 0
@@ -98,11 +99,13 @@ for seq_path in os.listdir(tracktor['dataset']):
     print(f"Tracks found: {len(results)}")
     print(f"Runtime for {seq_path}: {time.time() - start :.1f} s.")
     print('Runtime for load:', tracker.time['load'] - time_load)
+    print('Runtime for det:', tracker.time['det'] - time_det)
     print('Runtime for motion:', tracker.time['motion'] - time_motion)
     print('Runtime for regress:', tracker.time['regress'] - time_regress)
     print('Runtime for reid:', tracker.time['reid'] - time_reid)
     print('Runtime for track:', tracker.time['track'] - time_track)
     time_load = tracker.time['load']
+    time_det = tracker.time['det']
     time_motion = tracker.time['motion']
     time_regress = tracker.time['regress']
     time_reid = tracker.time['reid']
