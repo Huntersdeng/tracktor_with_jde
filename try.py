@@ -17,11 +17,11 @@ model.load_state_dict(torch.load('../weights/training/all/resnet50_img_size1120_
 
 start = time.time()
 img = cv2.imread('/data/dgw/dataset/MOT16/train/MOT16-02/images/000001.jpg')
-img, ratio, padw, padh = letterbox(img, height=630, width=1120)
+img, _, _, _ =letterbox(img, height=630, width=1120)
 img = np.ascontiguousarray(img[ :, :, ::-1])
 img = transforms(img).unsqueeze(0)
 print('Runtime: ', time.time()-start)
-model.eval()
+model.cuda().eval()
 model.load_image(img)
 dets = torch.FloatTensor([[ 600.4134,  259.4911,  630.3846,  329.3570],
                         [ 354.4627,  249.7224,  363.8081,  270.0044],

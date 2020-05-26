@@ -55,8 +55,7 @@ checkpoint = torch.load(tracktor['weights'], map_location='cpu')['model']
 #     checkpoint['roi_heads.embed_extractor.extract_embedding.bias'] = checkpoint['roi_heads.box_predictor.extract_embedding.bias']
 print(obj_detect.load_state_dict(checkpoint, strict=False))
 
-obj_detect.eval()
-obj_detect.cuda()
+obj_detect.cuda().eval()
 
 tracker = Tracker(obj_detect, tracktor['tracker'])
 

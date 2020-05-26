@@ -42,13 +42,13 @@ class Tracker:
 		self.track_num = 0
 		self.im_index = 0
 		self.results = {}
-		self.time = {'load':0.0,'det':0.0,'regress':0.0,'motion':0.0,'reid':0.0,'track':0.0}
+		self.time = {'load':0.0,'det':0.0,'regress':0.0,'motion':0.0,'reid':0.0,'track':0.0,'step':0.0}
 		self.boxes = {'det':0, 'regress':0}
 
 	def reset(self, hard=True):
 		self.tracks = []
 		self.inactive_tracks = []
-		self.time = {'load':0.0,'det':0.0,'regress':0.0,'motion':0.0,'reid':0.0,'track':0.0}
+		self.time = {'load':0.0,'det':0.0,'regress':0.0,'motion':0.0,'reid':0.0,'track':0.0,'step':0.0}
 		self.boxes = {'det':0, 'regress':0}
 
 		if hard:
@@ -81,7 +81,7 @@ class Tracker:
 		"""Regress the position of the tracks and also checks their scores."""
 		start = time.time()
 		pos = self.get_pos()
-		print(pos.size())
+		
 		self.boxes['regress'] += len(pos)
 		# regress
 		boxes, scores = self.obj_detect.predict_boxes(pos)
@@ -261,6 +261,7 @@ class Tracker:
 		"""This function should be called every timestep to perform tracking with a blob
 		containing the image information.
 		"""
+		begin = time.time()
 		start = time.time()
 		for t in self.tracks:
 			# add current position to last_pos list
@@ -278,7 +279,7 @@ class Tracker:
 		if self.public_detections:
 			dets = blob['dets'].squeeze(dim=0)
 			self.boxes['det'] += len(dets)
-			print(dets.size())
+			
 			if dets.nelement() > 0:
 				boxes, scores = self.obj_detect.predict_boxes(dets)		
 			else:
@@ -400,6 +401,7 @@ class Tracker:
 		self.im_index += 1
 		self.last_image = blob['img'][0]
 		self.time['track'] += time.time() - start
+		self.time['step'] += time.time() - begin
 
 	def get_results(self):
 		return self.results
