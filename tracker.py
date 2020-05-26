@@ -189,7 +189,9 @@ class Tracker:
 
 	def get_appearances(self, blob):
 		"""Uses the siamese CNN to get the features for all active tracks."""
+		start = time.time()
 		new_features = self.obj_detect.get_embedding(self.get_pos())
+		self.time['reid'] = time.time() - start
 		return new_features
 
 	def add_features(self, new_features):
@@ -320,12 +322,12 @@ class Tracker:
 				keep = nms(self.get_pos(), person_scores, self.regression_nms_thresh)
 				self.tracks_to_inactive([self.tracks[i] for i in list(range(len(self.tracks))) if i not in keep])
 				pos = list(self.get_pos())
-				start = time.time()
+        
 				if keep.nelement() > 0:
 					if self.do_reid:
 						new_features = self.get_appearances(blob)
 						self.add_features(new_features)
-				self.time['reid'] = time.time() - start
+				
 
 		#####################
 		# Create new tracks #
