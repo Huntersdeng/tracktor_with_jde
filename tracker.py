@@ -278,13 +278,15 @@ class Tracker:
 			dets = blob['dets'].squeeze(dim=0)
 			self.boxes['det'] += len(dets)
 			if dets.nelement() > 0:
+				begin = time.time()
 				boxes, scores = self.obj_detect.predict_boxes(dets)
+				self.time['det0'] = time.time() - begin
 			else:
 				boxes = scores = torch.zeros(0).cuda()
 		else:
 			boxes, scores = self.obj_detect.detect()
 
-		self.time['det'] += time.time() - start
+		
 		start = time.time()
 		if boxes.nelement() > 0:
 			boxes = clip_boxes_to_image(boxes, blob['img'].shape[-2:])
@@ -302,7 +304,7 @@ class Tracker:
 			det_pos = torch.zeros(0).cuda()
 			det_scores = torch.zeros(0).cuda()
 		
-		self.time['det0'] += time.time() - start
+		self.time['det'] += time.time() - start
 
 		##################
 		# Predict tracks #
