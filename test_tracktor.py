@@ -69,6 +69,7 @@ time_reid = 0
 time_motion = 0
 time_regress = 0
 time_track = 0
+time_step = 0
 num_frames = 0
 mot_accums = []
 
@@ -104,12 +105,14 @@ for seq_path in os.listdir(tracktor['dataset']):
     print('Runtime for regress:', tracker.time['regress'] - time_regress)
     print('Runtime for reid:', tracker.time['reid'] - time_reid)
     print('Runtime for track:', tracker.time['track'] - time_track)
+    print('Runtime for step:', tracker.time['step'] - time_step)
     time_load = tracker.time['load']
     time_det = tracker.time['det']
     time_motion = tracker.time['motion']
     time_regress = tracker.time['regress']
     time_reid = tracker.time['reid']
     time_track = tracker.time['track']
+    time_step = tracker.time['step']
 
     if tracktor['interpolate']:
         results = interpolate(results)
