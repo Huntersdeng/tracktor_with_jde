@@ -63,6 +63,11 @@ tracker = Tracker(obj_detect, tracktor['tracker'])
 transforms = T.Compose([T.ToTensor()])
 
 time_total = 0
+time_load = 0
+time_reid = 0
+time_motion = 0
+time_regress = 0
+time_track = 0
 num_frames = 0
 mot_accums = []
 
@@ -92,6 +97,16 @@ for seq_path in os.listdir(tracktor['dataset']):
 
     print(f"Tracks found: {len(results)}")
     print(f"Runtime for {seq_path}: {time.time() - start :.1f} s.")
+    print('Runtime for load:', tracker.time['load'] - time_load)
+    print('Runtime for motion:', tracker.time['motion'] - time_motion)
+    print('Runtime for regress:', tracker.time['regress'] - time_regress)
+    print('Runtime for reid:', tracker.time['reid'] - time_reid)
+    print('Runtime for track:', tracker.time['track'] - time_track)
+    time_load = tracker.time['load']
+    time_motion = tracker.time['motion']
+    time_regress = tracker.time['regress']
+    time_reid = tracker.time['reid']
+    time_track = tracker.time['track']
 
     if tracktor['interpolate']:
         results = interpolate(results)
@@ -107,5 +122,7 @@ for seq_path in os.listdir(tracktor['dataset']):
 
 print(f"Tracking runtime for all sequences (without evaluation or image writing): "
             f"{time_total:.1f} s ({num_frames / time_total:.1f} Hz)")
+print('Runtime for different steps:')
+print(tracker.time)
 if opt.with_labels:
     evaluate_mot_accums(mot_accums, [str(s) for s in os.listdir(tracktor['dataset'])], generate_overall=True)
