@@ -42,13 +42,13 @@ class Tracker:
 		self.track_num = 0
 		self.im_index = 0
 		self.results = {}
-		self.time = {'load':0.0,'det':0.0,'det0':0.0,'regress':0.0,'motion':0.0,'reid':0.0,'track':0.0}
+		self.time = {'load':0.0,'det':0.0,'regress':0.0,'motion':0.0,'reid':0.0,'track':0.0}
 		self.boxes = {'det':0, 'regress':0}
 
 	def reset(self, hard=True):
 		self.tracks = []
 		self.inactive_tracks = []
-		self.time = {'load':0.0,'det':0.0,'det0':0.0,'regress':0.0,'motion':0.0,'reid':0.0,'track':0.0}
+		self.time = {'load':0.0,'det':0.0,'regress':0.0,'motion':0.0,'reid':0.0,'track':0.0}
 		self.boxes = {'det':0, 'regress':0}
 
 		if hard:
@@ -280,9 +280,7 @@ class Tracker:
 			self.boxes['det'] += len(dets)
 			print(dets.size())
 			if dets.nelement() > 0:
-				begin = time.time()
-				boxes, scores = self.obj_detect.predict_boxes(dets)
-				self.time['det0'] = time.time() - begin
+				boxes, scores = self.obj_detect.predict_boxes(dets)		
 			else:
 				boxes = scores = torch.zeros(0).cuda()
 		else:
