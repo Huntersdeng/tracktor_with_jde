@@ -280,13 +280,7 @@ class Tracker:
 			self.boxes['det'] += len(dets)
 			print(dets.size())
 			if dets.nelement() > 0:
-<<<<<<< HEAD
-				begin = time.time()
-				boxes, scores = self.obj_detect.predict_boxes(dets)
-				self.time['det0'] += time.time() - begin
-=======
 				boxes, scores = self.obj_detect.predict_boxes(dets)		
->>>>>>> be118f19337951654707722176a3d556df2784f5
 			else:
 				boxes = scores = torch.zeros(0).cuda()
 		else:
