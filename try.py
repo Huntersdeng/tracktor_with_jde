@@ -28,6 +28,19 @@ pos =  torch.FloatTensor([[ 258.9648,  260.0791,  323.6870,  419.7425],
         [ 391.7324,  265.6148,  406.7554,  307.5581],
         [ 325.3136,  257.8607,  336.9111,  285.9368]])
 
+well = torch.FloatTensor([[,456,280,79,239],
+[321,176,59,180],
+[1522,103,59,180],
+[1837,271,48,146],
+[1488,784,159,479],
+[820,221,55,168],
+[285,285,59,180],
+[1684,111,51,157],
+[285,230,90,274],
+[1445,81,41,127],
+[542,187,97,294],
+[1684,483,97,294]])
+
 
 start = time.time()
 img = cv2.imread('/data/dgw/dataset/MOT16/train/MOT16-02/images/000001.jpg')
@@ -46,6 +59,10 @@ print('Runtime: ', time.time()-start)
 
 start = time.time()
 print(model.predict_boxes(pos))
+print('Runtime: ', time.time()-start)
+
+start = time.time()
+print(model.predict_boxes(well))
 print('Runtime: ', time.time()-start)
 
 start = time.time()
@@ -68,6 +85,10 @@ print(model.predict_boxes(pos))
 print('Runtime: ', time.time()-start)
 
 start = time.time()
+print(model.predict_boxes(well))
+print('Runtime: ', time.time()-start)
+
+start = time.time()
 img = cv2.imread('/data/dgw/dataset/MOT16/train/MOT16-02/images/000003.jpg')
 img, _, _, _ =letterbox(img, height=630, width=1120)
 img = np.ascontiguousarray(img[ :, :, ::-1])
@@ -84,4 +105,8 @@ print('Runtime: ', time.time()-start)
 
 start = time.time()
 print(model.predict_boxes(pos))
+print('Runtime: ', time.time()-start)
+
+start = time.time()
+print(model.predict_boxes(well))
 print('Runtime: ', time.time()-start)
