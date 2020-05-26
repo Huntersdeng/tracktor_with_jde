@@ -81,6 +81,7 @@ class Tracker:
 		"""Regress the position of the tracks and also checks their scores."""
 		start = time.time()
 		pos = self.get_pos()
+		print(pos.size())
 		self.boxes['regress'] += len(pos)
 		# regress
 		boxes, scores = self.obj_detect.predict_boxes(pos)
@@ -277,6 +278,7 @@ class Tracker:
 		if self.public_detections:
 			dets = blob['dets'].squeeze(dim=0)
 			self.boxes['det'] += len(dets)
+			print(dets.size())
 			if dets.nelement() > 0:
 				begin = time.time()
 				boxes, scores = self.obj_detect.predict_boxes(dets)
