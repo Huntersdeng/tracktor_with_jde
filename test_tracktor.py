@@ -56,13 +56,6 @@ checkpoint = torch.load(tracktor['weights'], map_location='cpu')['model']
 print(obj_detect.load_state_dict(checkpoint, strict=False))
 
 obj_detect.cuda().eval()
-img = cv2.imread('/data/dgw/dataset/MOT16/train/MOT16-02/images/000481.jpg')
-img, _, _, _ =letterbox(img, height=630, width=1120)
-img = np.ascontiguousarray(img[ :, :, ::-1])
-img = transforms(img).unsqueeze(0)
-model.load_image(img)
-dets = torch.FloatTensor([[ 600.4134,  259.4911,  630.3846,  329.3570]])
-model.predict_boxes(dets)
 
 tracker = Tracker(obj_detect, tracktor['tracker'])
 
@@ -84,7 +77,7 @@ for seq_path in os.listdir(tracktor['dataset']):
     seq = []
     for i, (_, frame, _, dets, labels) in enumerate(tqdm(data_loader)):
         
-        blob = {'img':frame.cuda(), 'dets':dets[:,:,2:6]} if with_dets else {'img':frame.cuda(), 'dets':None}
+        blob = {'img':frame.cuda(), 'dets':dets[:,:,2:6].cuda()} if with_dets else {'img':frame.cuda(), 'dets':None}
         # blob = {'img':frame, 'dets':dets[0,:,2:6]}
         with torch.no_grad():
             tracker.step(blob)
