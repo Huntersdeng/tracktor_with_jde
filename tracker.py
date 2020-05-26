@@ -280,14 +280,14 @@ class Tracker:
 			if dets.nelement() > 0:
 				begin = time.time()
 				boxes, scores = self.obj_detect.predict_boxes(dets)
-				self.time['det0'] = time.time() - begin
+				self.time['det0'] += time.time() - begin
 			else:
 				boxes = scores = torch.zeros(0).cuda()
 		else:
 			boxes, scores = self.obj_detect.detect()
 
 		
-		start = time.time()
+		
 		if boxes.nelement() > 0:
 			boxes = clip_boxes_to_image(boxes, blob['img'].shape[-2:])
 

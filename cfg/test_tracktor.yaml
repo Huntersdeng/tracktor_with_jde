@@ -5,8 +5,8 @@ tracktor:
   weights: ../weights/training/all/resnet50_img_size1120_630/latest.pt
   dataset: ./data/track/train
   len_embed: 1024
-  width: 1920
-  height: 1080
+  width: 1120
+  height: 630
   interpolate: True
   write_images: False
   tracker:
