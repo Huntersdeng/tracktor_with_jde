@@ -1,4 +1,5 @@
 from collections import deque
+import time
 
 import numpy as np
 import torch
@@ -41,6 +42,7 @@ class Tracker:
 		self.track_num = 0
 		self.im_index = 0
 		self.results = {}
+		self.time = {'load':0.0,'det':0.0,'regress':0.0,'motion':0.0,'reid':0.0}
 
 	def reset(self, hard=True):
 		self.tracks = []
@@ -74,6 +76,7 @@ class Tracker:
 
 	def regress_tracks(self, blob):
 		"""Regress the position of the tracks and also checks their scores."""
+		start = time.time()
 		pos = self.get_pos()
 
 		# regress
@@ -91,6 +94,7 @@ class Tracker:
 				# t.prev_pos = t.pos
 				t.pos = pos[i].view(1, -1)
 
+		self.time['regress'] += time.time() - start
 		return torch.Tensor(s[::-1]).cuda()
 
 	def get_pos(self):
@@ -126,6 +130,7 @@ class Tracker:
 	def reid(self, blob, new_det_pos, new_det_scores):
 		"""Tries to ReID inactive tracks with provided detections."""
 		new_det_features = [torch.zeros(0).cuda() for _ in range(len(new_det_pos))]
+		start = time.time()
 		
 		if self.do_reid:
 			new_det_features = self.obj_detect.get_embedding(new_det_pos)
@@ -178,6 +183,7 @@ class Tracker:
 					new_det_pos = torch.zeros(0).cuda()
 					new_det_scores = torch.zeros(0).cuda()
 					new_det_features = torch.zeros(0).cuda()
+		self.time['reid'] += time.time() - start
 		
 		return new_det_pos, new_det_scores, new_det_features
 
@@ -226,6 +232,7 @@ class Tracker:
 
 	def motion(self):
 		"""Applies a simple linear motion model that considers the last n_steps steps."""
+		start = time.time()
 		for t in self.tracks:
 			last_pos = list(t.last_pos)
 
@@ -242,6 +249,7 @@ class Tracker:
 			for t in self.inactive_tracks:
 				if t.last_v.nelement() > 0:
 					self.motion_step(t)
+		self.time['motion'] += time.time() - start
 
 	def step(self, blob):
 		"""This function should be called every timestep to perform tracking with a blob
@@ -254,9 +262,11 @@ class Tracker:
 		###########################
 		# Look for new detections #
 		###########################
-
+		start = time.time()
 		self.obj_detect.load_image(blob['img'].clone())
+		self.time['load'] += time.time() - start
 
+		start = time.time()
 		if self.public_detections:
 			dets = blob['dets'].squeeze(dim=0)
 			if dets.nelement() > 0:
@@ -281,6 +291,8 @@ class Tracker:
 		else:
 			det_pos = torch.zeros(0).cuda()
 			det_scores = torch.zeros(0).cuda()
+		
+		self.time['det'] += time.time() - start
 
 		##################
 		# Predict tracks #

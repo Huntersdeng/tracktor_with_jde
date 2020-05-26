@@ -107,5 +107,7 @@ for seq_path in os.listdir(tracktor['dataset']):
 
 print(f"Tracking runtime for all sequences (without evaluation or image writing): "
             f"{time_total:.1f} s ({num_frames / time_total:.1f} Hz)")
+print('Runtime for different steps:')
+print(tracker.time)
 if opt.with_labels:
     evaluate_mot_accums(mot_accums, [str(s) for s in os.listdir(tracktor['dataset'])], generate_overall=True)
