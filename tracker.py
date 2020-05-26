@@ -43,6 +43,7 @@ class Tracker:
 		self.im_index = 0
 		self.results = {}
 		self.time = {'load':0.0,'det':0.0,'regress':0.0,'motion':0.0,'reid':0.0,'track':0.0, 'step':0.0}
+		self.boxes = {'det':0, 'regress':0}
 
 	def reset(self, hard=True):
 		self.tracks = []
@@ -78,7 +79,7 @@ class Tracker:
 		"""Regress the position of the tracks and also checks their scores."""
 		start = time.time()
 		pos = self.get_pos()
-
+		self.boxes['regress'] += len(pos)
 		# regress
 		boxes, scores = self.obj_detect.predict_boxes(pos)
 		pos = boxes
@@ -274,6 +275,7 @@ class Tracker:
 		start = time.time()
 		if self.public_detections:
 			dets = blob['dets'].squeeze(dim=0)
+			self.boxes['det'] += len(dets)
 			if dets.nelement() > 0:
 				boxes, scores = self.obj_detect.predict_boxes(dets)
 			else:
