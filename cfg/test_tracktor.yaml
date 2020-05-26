@@ -11,7 +11,7 @@ tracktor:
   write_images: False
   tracker:
     # FRCNN score threshold for detections
-    detection_person_thresh: 0.95
+    detection_person_thresh: 0.8
     # FRCNN score threshold for keeping the track alive
     regression_person_thresh: 0.9
     # NMS threshold for detection
