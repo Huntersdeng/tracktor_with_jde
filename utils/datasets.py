@@ -174,10 +174,10 @@ class LoadImagesAndDets:  # for training
                 det[:, 4] = ratio * (det0[:, 2] + det0[:, 4] / 2) + padw
                 det[:, 5] = ratio * (det0[:, 3] + det0[:, 5] / 2) + padh
             except OSError:
-                det = np.array([])
+                det = np.zeros((0,4))
 
         else:
-            det = np.array([])
+            det = np.zeros((0,4))
         if self.with_labels:
             label0 = np.loadtxt(label_path, delimiter=',', dtype=np.float32).reshape(-1, 6)
 
