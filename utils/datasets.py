@@ -164,14 +164,18 @@ class LoadImagesAndDets:  # for training
         # Padded resize
         img, ratio, padw, padh = letterbox(img0, height=self.height, width=self.width)
         if self.with_dets:
-            det0 = np.loadtxt(det_path, delimiter=',', dtype=np.float32).reshape(-1, 6)
+            try:
+                det0 = np.loadtxt(det_path, delimiter=',', dtype=np.float32).reshape(-1, 6)
 
-            # Normalized xywh to pixel xyxy format
-            det = det0.copy()
-            det[:, 2] = ratio * (det0[:, 2] - det0[:, 4] / 2) + padw
-            det[:, 3] = ratio * (det0[:, 3] - det0[:, 5] / 2) + padh
-            det[:, 4] = ratio * (det0[:, 2] + det0[:, 4] / 2) + padw
-            det[:, 5] = ratio * (det0[:, 3] + det0[:, 5] / 2) + padh
+                # Normalized xywh to pixel xyxy format
+                det = det0.copy()
+                det[:, 2] = ratio * (det0[:, 2] - det0[:, 4] / 2) + padw
+                det[:, 3] = ratio * (det0[:, 3] - det0[:, 5] / 2) + padh
+                det[:, 4] = ratio * (det0[:, 2] + det0[:, 4] / 2) + padw
+                det[:, 5] = ratio * (det0[:, 3] + det0[:, 5] / 2) + padh
+            except OSError:
+                det = np.array([])
+
         else:
             det = np.array([])
         if self.with_labels:
