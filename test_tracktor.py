@@ -83,16 +83,16 @@ for seq_path in os.listdir(tracktor['dataset']):
             tracker.step(blob)
         num_frames += 1
         
-        #if opt.with_labels:
-        #    gt = {}
-        #    for label in labels[0]:
-        #        gt[label[1]] = label[2:6]
-        #    seq.append({'gt':gt})
+        if opt.with_labels:
+            gt = {}
+            for label in labels[0]:
+                gt[label[1]] = label[2:6]
+            seq.append({'gt':gt})
     results = tracker.get_results()
-    time_total += time.time() - start
+    time_total += tracker.time['step']
 
     print(f"Tracks found: {len(results)}")
-    print(f"Runtime for {seq_path}: {time.time() - start :.1f} s.")
+    print(f"Runtime for {seq_path}: {tracker.time['step'] :.1f} s.")
     print('Runtime for different steps: ', tracker.time)
     print('nums of boxes: ', tracker.boxes)
 
