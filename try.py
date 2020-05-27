@@ -77,7 +77,7 @@ model.load_image(img)
 print('Runtime for laod img2: ', time.time()-start)
 
 start = time.time()
-print(model.predict_boxes(torch.cat(dets,pos)))
+print(model.predict_boxes(torch.cat((dets,pos))))
 print('Runtime: ', time.time()-start)
 
 # start = time.time()
