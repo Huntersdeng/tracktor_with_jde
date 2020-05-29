@@ -15,6 +15,7 @@ from torchvision.ops import boxes as box_ops
 
 import math
 from functools import reduce
+import time
 
 class Jde_RCNN(GeneralizedRCNN):
     def __init__(self, backbone, num_ID, num_classes=2, version='v1',
@@ -137,10 +138,13 @@ class Jde_RCNN(GeneralizedRCNN):
     
     ## FIXME 以下几个函数都是跟踪时用的，与训练无关
     def detect(self):
+        start = time.time()
         device = list(self.parameters())[0].device
         images = self.preprocessed_images
         images = images.to(device)
         proposals, _ = self.rpn(images, self.features, None)
+        time_det = time.time() - start
+        start = time.time()
         detections, _ = self.roi_heads(self.features, proposals, images.image_sizes, None)
         detections = self.transform.postprocess(detections, images.image_sizes, self.original_image_sizes)[0]
         if self.version=='v2':
@@ -149,7 +153,8 @@ class Jde_RCNN(GeneralizedRCNN):
                 self.box_features[str(int(box[0]))+','+str(int(box[1]))+','+str(int(box[2]))+','+str(int(box[3]))] = box_feature
         else:
             boxes, scores = detections['boxes'].detach(), detections['scores'].detach()
-        return boxes, scores
+        time_regress = time.time() - start
+        return boxes, scores, time_det, time_regress
 
     def predict_boxes(self, boxes):
         device = list(self.parameters())[0].device

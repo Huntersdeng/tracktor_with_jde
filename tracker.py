@@ -275,19 +275,22 @@ class Tracker:
 		self.obj_detect.load_image(blob['img'].clone())
 		self.time['load'] += time.time() - start
 
-		start = time.time()
 		if self.public_detections:
 			dets = blob['dets'].squeeze(dim=0)
 			self.boxes['det'] += len(dets)
 			
 			if dets.nelement() > 0:
-				boxes, scores = self.obj_detect.predict_boxes(dets)		
+				start = time.time()
+				boxes, scores = self.obj_detect.predict_boxes(dets)
+				time_regress = time.time() - start
+				time_det = 0	
 			else:
 				boxes = scores = torch.zeros(0).cuda()
 		else:
-			boxes, scores = self.obj_detect.detect()
-
+			boxes, scores, time_det, time_regress = self.obj_detect.detect()
 		
+		self.time['det'] += time_det
+		self.time['regress'] += time_regress
 		
 		if boxes.nelement() > 0:
 			boxes = clip_boxes_to_image(boxes, blob['img'].shape[-2:])
