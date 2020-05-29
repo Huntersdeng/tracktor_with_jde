@@ -3,7 +3,7 @@ tracktor:
   num_ID: 1443
   version: 'v1'
   weights: ../weights/training/all/resnet50_img_size1120_630/latest.pt
-  dataset: ./data/track/MOT17/train
+  dataset: ./data/track/try
   len_embed: 1024
   width: 1120
   height: 630
@@ -13,7 +13,7 @@ tracktor:
     # FRCNN score threshold for detections
     detection_person_thresh: 0.7
     # FRCNN score threshold for keeping the track alive
-    regression_person_thresh: 0.7
+    regression_person_thresh: 0.6
     # NMS threshold for detection
     detection_nms_thresh: 0.6
     # NMS theshold while tracking
@@ -27,7 +27,7 @@ tracktor:
       center_only: True
     # DPM or DPM_RAW or 0, raw includes the unfiltered (no nms) versions of the provided detections,
     # 0 tells the tracker to use private detections (Faster R-CNN)
-    public_detections: True
+    public_detections: False
     # How much last appearance features are to keep
     max_features_num: 10
     # Do camera motion compensation
