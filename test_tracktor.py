@@ -25,6 +25,7 @@ warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--with-labels', action='store_true', help='for valset')
+parser.add_argument('--batch-size', type=int, default=1, help='batcg size')
 parser.add_argument('--gpu', type=str, default='0', help='which gpu to use')
 opt = parser.parse_args()
 
@@ -72,13 +73,14 @@ for seq_path in os.listdir(tracktor['dataset']):
 
     print(f"Tracking: {seq_path}")
     sequence = LoadImagesAndDets(root, osp.join(tracktor['dataset'], seq_path), img_size, opt.with_labels, with_dets)
-    data_loader = DataLoader(sequence, batch_size=2, shuffle=False)
+    data_loader = DataLoader(sequence, batch_size=1, shuffle=False)
 
     start = time.time()
     seq = []
     for i, (_, frame, _, dets, labels) in enumerate(tqdm(data_loader)):
-        
-        blob = {'img':frame[0].cuda(), 'dets':dets[0,:,2:6].cuda()} if with_dets else {'img':frame.cuda(), 'dets':None}
+        if i%opt.batch_size!=0:
+            continue
+        blob = {'img':frame.cuda(), 'dets':dets[:,:,2:6].cuda()} if with_dets else {'img':frame.cuda(), 'dets':None}
         # blob = {'img':frame, 'dets':dets[0,:,2:6]}
         with torch.no_grad():
             tracker.step(blob)
