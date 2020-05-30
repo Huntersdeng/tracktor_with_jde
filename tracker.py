@@ -278,14 +278,14 @@ class Tracker:
 		if self.public_detections:
 			dets = blob['dets'].squeeze(dim=0)
 			self.boxes['det'] += len(dets)
-			
+
+			start = time.time()
 			if dets.nelement() > 0:
-				start = time.time()
 				boxes, scores = self.obj_detect.predict_boxes(dets)
-				time_regress = time.time() - start
-				time_det = 0	
 			else:
 				boxes = scores = torch.zeros(0).cuda()
+			time_regress = time.time() - start
+			time_det = 0
 		else:
 			boxes, scores, time_det, time_regress = self.obj_detect.detect()
 		
@@ -308,8 +308,7 @@ class Tracker:
 			det_pos = torch.zeros(0).cuda()
 			det_scores = torch.zeros(0).cuda()
 		
-		self.time['det'] += time.time() - start
-
+		
 		##################
 		# Predict tracks #
 		##################

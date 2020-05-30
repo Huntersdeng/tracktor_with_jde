@@ -202,10 +202,11 @@ if __name__ == '__main__':
     parser.add_argument('--test-trainset', action='store_true', help='test trainset')
     parser.add_argument('--img-size', type=int, default=(800,450), nargs='+', help='pixels')
     parser.add_argument('--len-embed', type=int, default=128, help='length of embeddings')
+    parser.add_argument('--gpu', type=str, default='1', help='which gpu to use')
     
     opt = parser.parse_args()
     print(opt, end='\n\n')
-    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+    os.environ['CUDA_VISIBLE_DEVICES'] = opt.gpu
     weights_path = opt.weights_path
     with open(os.path.join(weights_path, 'model.yaml'), 'r') as f:
         cfg = yaml.load(f,Loader=yaml.FullLoader)
